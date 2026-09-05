@@ -1,0 +1,188 @@
+/* Phone-first, dark by default. The app runs full-screen from the Home Screen, so
+   safe-area insets matter more than breakpoints. */
+
+:root {
+  --bg: #111418;
+  --surface: #1a1f26;
+  --surface-2: #232a33;
+  --line: #2e3742;
+  --text: #eef2f7;
+  --muted: #9aa7b5;
+  --accent: #6ea8fe;
+  --white-piece: #f2f4f7;
+  --black-piece: #4a5462;
+  --warn-bg: #3a2f14;
+  --warn-line: #7a6320;
+  --warn-text: #f4d67a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding:
+    env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+  -webkit-font-smoothing: antialiased;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 2;
+}
+
+.topbar h1 { font-size: 18px; margin: 0; letter-spacing: 0.2px; }
+
+main { padding: 16px 18px 40px; max-width: 640px; margin: 0 auto; }
+
+.status { color: var(--muted); margin: 4px 0 16px; }
+.muted { color: var(--muted); font-size: 14px; }
+
+.banner {
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.banner--warn { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-text); }
+
+.tournament { margin-bottom: 26px; }
+.tournament h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 10px;
+  color: var(--muted);
+}
+
+/* The current pairing is the whole point of the app — it gets the big treatment. */
+.pairing {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 10px;
+}
+.pairing--current { border-color: var(--accent); }
+
+.pairing__meta {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  color: var(--muted);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 8px;
+}
+.pairing__board { color: var(--accent); font-weight: 700; }
+.pairing__opponent { font-size: 22px; font-weight: 650; margin: 0 0 6px; word-break: break-word; }
+.pairing__rating { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 500; }
+
+.colour {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.colour::before {
+  content: "";
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--black-piece);
+}
+.colour--white::before { background: var(--white-piece); }
+
+/* Compact rows for rounds already played. */
+.history { list-style: none; padding: 0; margin: 8px 0 0; }
+.history li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+.history .rd { color: var(--muted); min-width: 2.6em; font-variant-numeric: tabular-nums; }
+.history .who { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history .res { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-top: 28px;
+}
+.panel h2 { font-size: 15px; margin: 0 0 8px; }
+
+.button {
+  appearance: none;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #0d1117;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 12px 18px;
+  margin-top: 10px;
+  width: 100%;
+  cursor: pointer;
+}
+.button--secondary { background: var(--surface-2); color: var(--text); }
+
+.icon-button {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 8px;
+  width: 36px; height: 36px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+textarea {
+  width: 100%;
+  margin-top: 10px;
+  background: #0d1117;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+
+code {
+  background: var(--surface-2);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.9em;
+}
+
+.empty { color: var(--muted); padding: 24px 0; text-align: center; }
+.foot { margin-top: 28px; text-align: center; }
+
+.tournament h2 a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px dotted var(--line);
+}
+.tournament h2 a:active { color: var(--accent); }

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PairingNotify</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="styles.css">
+<meta name="theme-color" content="#111418">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pairings">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+</head>
+<body>
+<header class="topbar">
+  <h1>Pairings</h1>
+  <button id="refresh" class="icon-button" title="Refresh" aria-label="Refresh">&#8635;</button>
+</header>
+
+<main id="main">
+  <p id="status" class="status">Loading…</p>
+
+  <div id="degraded" class="banner banner--warn" hidden>
+    <strong>Auto-discovery is down.</strong>
+    <span id="degraded-detail"></span>
+    Pinned tournaments are still being polled — add one in <code>watchlist.json</code>.
+  </div>
+
+  <section id="tournaments"></section>
+
+  <section id="notify-panel" class="panel">
+    <h2>Notifications</h2>
+    <p id="notify-status" class="muted">Checking…</p>
+    <button id="enable" class="button" hidden>Enable notifications</button>
+    <div id="subscription-box" hidden>
+      <p class="muted">
+        Last step, once only: paste this into your repository secret
+        <code>PUSH_SUBSCRIPTION</code>
+        (Settings → Secrets and variables → Actions).
+      </p>
+      <textarea id="subscription" readonly rows="6" spellcheck="false"></textarea>
+      <button id="copy" class="button button--secondary">Copy</button>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span id="generated" class="muted"></span>
+  </footer>
+</main>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

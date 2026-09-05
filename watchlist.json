@@ -1,0 +1,14 @@
+{
+  "$comment": "Who to watch. playerName is matched case/accent-insensitively against the tournament starting-rank list. fideId, when set, wins over the name and removes all ambiguity.",
+  "playerName": "Suriyajan, Chayapol",
+  "fideId": null,
+  "autoDiscover": true,
+  "tournaments": [
+    {
+      "$comment": "Pinned tournaments. Always polled, even if auto-discovery breaks. id is the number in https://chess-results.com/tnr<id>.aspx",
+      "id": "1146458",
+      "label": "Example tournament - replace or delete me",
+      "enabled": false
+    }
+  ]
+}

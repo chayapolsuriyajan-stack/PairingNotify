@@ -1,0 +1,43 @@
+name: Deploy PWA to GitHub Pages
+
+on:
+  push:
+    branches: [claude/chess-pairing-notifications-atzfns, main]
+    paths:
+      - 'web/**'
+      - 'data/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a deploy midway; let the running one finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble site
+        # The app fetches ../data/pairings.json, so data/ must sit beside web/.
+        run: |
+          mkdir -p _site/data
+          cp -r web/* _site/
+          cp -r data/* _site/data/ 2>/dev/null || echo '{}' > _site/data/pairings.json
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

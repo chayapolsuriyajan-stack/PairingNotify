@@ -1,0 +1,43 @@
+name: Capture chess-results fixtures
+
+# Manual. Downloads raw chess-results HTML from a runner (which, unlike some dev
+# sandboxes, can reach the site) and reports whether each parser still works against
+# today's markup. Run this first, and any time the poller starts failing to parse.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tournament:
+        description: 'Tournament id, the number in https://chess-results.com/tnr<id>.aspx'
+        required: true
+      name:
+        description: 'Player name to look for (optional if you pass a start number)'
+        required: false
+      snr:
+        description: 'Start number, skips the name lookup (optional)'
+        required: false
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+
+      - name: Capture
+        run: |
+          node scripts/capture-fixtures.js \
+            --tournament "${{ inputs.tournament }}" \
+            ${{ inputs.name && format('--name "{0}"', inputs.name) || '' }} \
+            ${{ inputs.snr && format('--snr "{0}"', inputs.snr) || '' }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: chess-results-fixtures
+          path: scripts/__fixtures__/captured/
+          if-no-files-found: warn
