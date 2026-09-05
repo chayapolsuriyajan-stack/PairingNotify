@@ -10,6 +10,13 @@
 // Replace this placeholder with your own public key (see README step 3).
 const VAPID_PUBLIC_KEY = '';
 
+// Repo + branch the "Fast watching" button dispatches watch.yml against. Update REF
+// once you merge onto your default branch — workflow_dispatch runs the version of
+// the workflow file that lives on this ref.
+const REPO_OWNER = 'chayapolsuriyajan-stack';
+const REPO_NAME = 'PairingNotify';
+const REPO_REF = 'claude/chess-pairing-notifications-atzfns';
+
 const FEED_URL = './data/pairings.json';
 
 const el = (id) => document.getElementById(id);
@@ -195,8 +202,175 @@ el('copy')?.addEventListener('click', async () => {
 
 el('refresh').addEventListener('click', loadFeed);
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) loadFeed();
+  if (!document.hidden) {
+    loadFeed();
+    refreshWatchStatusQuietly();
+  }
 });
+
+/* ------------------------------------------------------------- fast watching */
+/*
+ * Starting/cancelling the watch.yml workflow needs a GitHub API call with write
+ * access to Actions on this repo — something a static page cannot hold securely.
+ * The tradeoff made here, deliberately, for a personal single-user tool: the token
+ * lives only in this device's localStorage, is scoped (by the fine-grained PAT you
+ * create) to Actions-only on this one repository, and is sent only to
+ * api.github.com. It is never committed, never sent anywhere else, and never seen
+ * by anyone but you and GitHub.
+ */
+
+const PAT_STORAGE_KEY = 'pairingnotify.githubPat';
+const API_BASE = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`;
+
+function getStoredPat() {
+  try {
+    return localStorage.getItem(PAT_STORAGE_KEY) || '';
+  } catch {
+    return ''; // private browsing / storage blocked
+  }
+}
+
+function setStoredPat(token) {
+  try {
+    localStorage.setItem(PAT_STORAGE_KEY, token);
+  } catch {
+    // Can't persist it — the caller will just have to paste it again next time.
+  }
+}
+
+function setWatchStatus(text) {
+  el('watch-status').textContent = text;
+}
+
+async function githubApi(path, options = {}) {
+  const token = getStoredPat();
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  } catch (networkError) {
+    // A thrown TypeError here (as opposed to an HTTP error status below) usually
+    // means the browser blocked the request before it got a response — most likely
+    // a CORS rejection from api.github.com, not a real connectivity problem.
+    throw new Error(
+      `Could not reach GitHub (${networkError.message}). If this persists, your browser may be ` +
+        'blocking the request as cross-origin; use the Actions tab on GitHub directly instead.',
+    );
+  }
+  if (response.status === 401 || response.status === 403) {
+    setStoredPat('');
+    throw new Error('Token rejected — it may be expired or missing "Actions: Read and write". Paste a fresh one.');
+  }
+  if (!response.ok && response.status !== 204) {
+    const body = await response.text().catch(() => '');
+    throw new Error(`GitHub API ${response.status}: ${body.slice(0, 200)}`);
+  }
+  return response.status === 204 ? null : response.json();
+}
+
+/** The one currently running (or queued) watch.yml run, if any. */
+async function findActiveWatchRun() {
+  const data = await githubApi('/actions/workflows/watch.yml/runs?per_page=10');
+  return (data?.workflow_runs ?? []).find((run) => run.status === 'in_progress' || run.status === 'queued') ?? null;
+}
+
+/** Throws on failure — callers that don't specifically need to react differently
+ *  to that (vs. a start/stop action's own failure) should use refreshWatchStatusQuietly. */
+async function refreshWatchStatus() {
+  if (!getStoredPat()) return; // nothing to check yet; setUpWatchPanel already prompted
+  const active = await findActiveWatchRun();
+  renderWatchButton(active);
+}
+
+function refreshWatchStatusQuietly() {
+  refreshWatchStatus().catch((error) => setWatchStatus(error.message));
+}
+
+function renderWatchButton(activeRun) {
+  const button = el('watch-toggle');
+  button.hidden = false;
+  if (activeRun) {
+    setWatchStatus(`Watching fast — started ${new Date(activeRun.created_at).toLocaleTimeString()}.`);
+    button.textContent = 'Stop watching';
+    button.dataset.action = 'stop';
+    button.dataset.runId = activeRun.id;
+  } else {
+    setWatchStatus('Not watching fast right now — back to the normal ~10-25 minute schedule.');
+    button.textContent = 'Start watching';
+    button.dataset.action = 'start';
+    delete button.dataset.runId;
+  }
+}
+
+async function setUpWatchPanel() {
+  el('pat-save').addEventListener('click', async () => {
+    const token = el('pat-input').value.trim();
+    if (!token) return;
+    setStoredPat(token);
+    el('pat-input').value = '';
+    el('pat-box').hidden = true;
+    refreshWatchStatusQuietly();
+  });
+
+  el('watch-toggle').addEventListener('click', async () => {
+    const button = el('watch-toggle');
+    const stopping = button.dataset.action === 'stop';
+    button.disabled = true;
+    try {
+      if (stopping) {
+        setWatchStatus('Stopping…');
+        await githubApi(`/actions/runs/${button.dataset.runId}/cancel`, { method: 'POST' });
+      } else {
+        setWatchStatus('Starting…');
+        await githubApi('/actions/workflows/watch.yml/dispatches', {
+          method: 'POST',
+          body: JSON.stringify({ ref: REPO_REF, inputs: { chain: '1', max_chains: '4' } }),
+        });
+      }
+    } catch (error) {
+      // The action itself (start/stop) failed — nothing changed, so the button
+      // should go back to reflecting that.
+      setWatchStatus(error.message);
+      button.disabled = false;
+      return;
+    }
+
+    // The action succeeded. Checking GitHub's registered state right after is a
+    // courtesy, not the source of truth — a hiccup here must not read as "did that
+    // even work?" when it did.
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await refreshWatchStatus();
+    } catch {
+      setWatchStatus(
+        `${stopping ? 'Stop' : 'Start'} request sent. Could not confirm the new status yet — tap refresh in a moment.`,
+      );
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  if (!getStoredPat()) {
+    setWatchStatus('Needs a one-time GitHub token to start/stop watching from here.');
+    el('pat-box').hidden = false;
+    return;
+  }
+  refreshWatchStatusQuietly();
+}
+
+/* --------------------------------------------------------------------- start */
+/* Everything above is declarations only; kick things off here, at the true end
+   of the module, so no call site can run before the const/function it depends
+   on has been evaluated (a top-level const referenced too early throws a
+   temporal-dead-zone ReferenceError, not a friendly message). */
 
 loadFeed();
 setUpNotifications().catch((error) => setNotifyStatus(`Notification setup failed: ${error.message}`));
+setUpWatchPanel().catch((error) => setWatchStatus(`Fast watching unavailable: ${error.message}`));

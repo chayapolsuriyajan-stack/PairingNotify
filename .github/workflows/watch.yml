@@ -1,0 +1,83 @@
+name: Watch (fast polling)
+
+# Manual only: started by tapping "Start watching" in the PWA (or "Run workflow"
+# here). Runs a tight poll loop for one long job, then re-dispatches itself so the
+# loop keeps going across the hosted-runner's 6-hour job limit. This is what gets
+# alert latency down from ~10-25 minutes to ~20-30 seconds during a round.
+#
+# To stop: cancel the running job (the PWA's "Stop watching" button does this, or
+# use the Actions UI). Cancelling skips the re-chain step, so the loop actually ends
+# instead of restarting itself.
+
+on:
+  workflow_dispatch:
+    inputs:
+      chain:
+        description: 'Internal: position in the auto-restart chain (do not set by hand)'
+        default: '1'
+      max_chains:
+        description: 'Safety cap: stop auto-restarting after this many ~5h40m links'
+        default: '4'
+
+concurrency:
+  # Starting a new watch replaces a stuck/forgotten one rather than running two loops
+  # in parallel racing on the same git push.
+  group: watch
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    # Just under GitHub's 6h hosted-runner job cap.
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Fast poll loop
+        env:
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          PUSH_SUBSCRIPTION: ${{ secrets.PUSH_SUBSCRIPTION }}
+        run: |
+          git config user.name  'pairingnotify[bot]'
+          git config user.email 'pairingnotify@users.noreply.github.com'
+          node scripts/watch.js --minutes 340 --interval 20
+
+      - name: Chain to the next link
+        # !cancelled() is the whole trick: a manual cancel (the "Stop watching"
+        # button) must NOT restart the loop, but the loop finishing its own budget
+        # (or even erroring) should. GITHUB_TOKEN cannot be used for this dispatch —
+        # GitHub deliberately blocks a token-triggered workflow_dispatch from
+        # triggering another run, to prevent exactly this kind of loop by accident.
+        # A real PAT is required; see README "Fast watching" setup.
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ secrets.WATCH_DISPATCH_PAT }}
+        run: |
+          chain=${{ inputs.chain }}
+          max=${{ inputs.max_chains }}
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::WATCH_DISPATCH_PAT is not set, so the fast-watch loop cannot re-chain. Add it (README 'Fast watching') or just tap Start watching again."
+            exit 0
+          fi
+          if [ "$chain" -ge "$max" ]; then
+            echo "Reached max_chains ($max, about $((max * 340 / 60)) hours) — stopping as a safety net. Tap Start watching again if you're still playing."
+            exit 0
+          fi
+          next=$((chain + 1))
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/watch.yml/dispatches" \
+            -d "{\"ref\":\"${{ github.ref_name }}\",\"inputs\":{\"chain\":\"${next}\",\"max_chains\":\"${max}\"}}"

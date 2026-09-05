@@ -45,6 +45,28 @@
     </div>
   </section>
 
+  <section id="watch-panel" class="panel">
+    <h2>Fast watching</h2>
+    <p class="muted">
+      Normal polling runs every ~10-25 minutes. Starting a fast watch checks
+      chess-results roughly every 20 seconds instead, for a few hours — turn it on
+      right before your round.
+    </p>
+    <p id="watch-status" class="muted">Checking…</p>
+    <button id="watch-toggle" class="button" hidden>Start watching</button>
+    <div id="pat-box" hidden>
+      <p class="muted">
+        This needs a GitHub token, once only. Create a
+        <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">fine-grained personal access token</a>
+        scoped to <strong>only this repository</strong> with <strong>Actions: Read and write</strong>
+        permission, then paste it below. It stays on this device (never sent anywhere but
+        <code>api.github.com</code>).
+      </p>
+      <textarea id="pat-input" rows="2" spellcheck="false" placeholder="github_pat_…"></textarea>
+      <button id="pat-save" class="button">Save token</button>
+    </div>
+  </section>
+
   <footer class="foot">
     <span id="generated" class="muted"></span>
   </footer>

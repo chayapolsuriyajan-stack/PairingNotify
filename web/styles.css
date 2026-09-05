@@ -186,3 +186,9 @@ code {
   border-bottom: 1px dotted var(--line);
 }
 .tournament h2 a:active { color: var(--accent); }
+
+.panel a { color: var(--accent); }
+#pat-input {
+  min-height: 2.4em;
+  font-size: 12px;
+}
