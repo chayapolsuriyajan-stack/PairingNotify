@@ -225,3 +225,27 @@ Phone PWA (Next.js) ── /api/* (passcode cookie) ── server routes proxy +
   within about 2 minutes of the pairing appearing on chess-results.
 - Check the mobile UI in the browser pane at 375px in both themes: no horizontal scroll,
   tap targets at least 44px, and hero text readable at arm's length.
+
+---
+
+## Status (2026-09-19): built
+
+All steps 0–7 are implemented. Deviations from the plan, and why:
+
+- **The old parsers were broken on real pages.** The synthetic fixtures didn't match real
+  markup (a layout table wraps the page; colour is a `FarbewT/FarbesT` div inside the
+  result cell), and the FIDE-ID column only exists on `art=0`. Tables are now read by
+  their own rows and cells, and every parser is tested against real pages captured
+  2026-09-19.
+- **Auto-discovery never worked.** The search form has separate surname and first-name
+  fields. It is now fixed, searches by FIDE ID when one is set, and keeps only current
+  events.
+- **Confirmed page types:** `art=0` starting rank, `art=1&rd=N` standings, `art=2&rd=N`
+  pairings, `art=5` crosstable plus details, `art=9` player card, `art=14` schedule.
+- **Forecast accuracy** is measured, not assumed: 45–66% exact opponent when replaying
+  real events, and 33% exact / 50% top-3 / 89% colour in a live out-of-sample check. The
+  per-event track record comes from replaying that event's own rounds rather than from
+  a stored hit log.
+- **A poll lock** in the store stops a cron tick and a "follow added" refresh from both
+  pushing the same pairing.
+- The VAPID public key is served from `/api/config`, so no `NEXT_PUBLIC_` rebuild is needed.

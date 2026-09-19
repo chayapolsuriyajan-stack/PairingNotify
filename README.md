@@ -1,192 +1,154 @@
 # PairingNotify
 
-Watches [chess-results.com](https://chess-results.com) for your next pairing and pushes it
-to your phone's lock screen — **round, board, opponent name, opponent rating** — plus a
-small full-screen web app you add to your Home Screen.
+A phone-first companion for [chess-results.com](https://chess-results.com), for players
+who are tired of pinch-zooming ASP.NET tables between rounds.
 
-No servers. GitHub Actions does the polling, GitHub Pages hosts the app.
+- **Your next game on one screen**: board number, your colour, opponent and rating,
+  plus a countdown to the round.
+- **Lock-screen alert** about 1–2 minutes after a pairing is published, for you and for
+  anyone you follow (teammates, students, your kid).
+- **Tournament pages that work on a phone**: round pairings with your board pinned,
+  standings with your row pinned, your card, and the event details.
+- **Opponent scout**: their card in this event, their FIDE profile, and any earlier
+  games you've played against them.
+- **Next-opponent forecast** while your round is still being played, including
+  "if I win / draw / lose" (see [How good is the forecast?](#how-good-is-the-forecast)).
+- **Works in a hall with bad Wi-Fi**: the last data you loaded stays available offline.
+
+The look follows [`design.md`](design.md): an industrial "field terminal" style with
+graphite, signal yellow and mono readouts. It uses dark mode by default and switches to
+light automatically when your phone is in light mode.
 
 ```
-Actions cron ──► chess-results ──► diff vs last state ──► Web Push ──► your phone
-     │
-     └──► data/pairings.json ──► GitHub Pages ──► the Home Screen app
+cron-job.org (every 1–2 min) ──► /api/poll ──► chess-results ──► diff ──► Web Push ──► phones
+                                     │
+                                     └──► Upstash Redis (follows, devices, state, feed)
+phone (PWA) ──► /api/* ──► cached chess-results proxy (1 request/min per page, shared)
 ```
 
 ---
 
-## What to expect before you set it up
+## Setup (about 15 minutes)
 
-- **Normal alerts arrive within roughly 10–25 minutes of a pairing being published.**
-  GitHub's scheduled workflows have a 5-minute floor and are regularly delayed another
-  5–20 minutes. There's an optional [Fast watching](#fast-watching-near-instant-alerts)
-  mode that gets this down to ~20–30 seconds — see that section.
-- **On iPhone, push only works after you Add to Home Screen.** This is an iOS rule for all
-  web apps, not a limitation of this project. Opening the site in a Safari tab will never
-  produce a notification.
-- **chess-results has no API.** Everything here is scraped from an ASP.NET site that can
-  change without warning. The parsers are isolated in `scripts/chessresults/` and covered
-  by tests so a break is a small fix; see [When it breaks](#when-it-breaks).
+### 1. Deploy to Vercel
 
----
+Import this repository in Vercel. You can keep the default settings.
 
-## Setup
+### 2. Add storage
 
-### 1. Fork/clone and enable Pages
+In the Vercel project, open **Storage → Marketplace → Upstash Redis** and connect it (the
+free tier is plenty). This adds `KV_REST_API_URL` and `KV_REST_API_TOKEN` for you.
 
-Settings → Pages → **Source: GitHub Actions**.
+### 3. Set environment variables
 
-> Keeping the repo **public** is recommended. Pages on a private repo needs GitHub Pro, and
-> nothing here is sensitive — pairings and ratings are already public on chess-results.
-> Your VAPID private key and push subscription live in Actions secrets, which stay private
-> even in a public repo.
+Settings → Environment Variables:
 
-### 2. Tell it who you are
+| Variable | Value |
+|---|---|
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | from `npx web-push generate-vapid-keys` |
+| `VAPID_SUBJECT` | `mailto:you@example.com` |
+| `CRON_SECRET` | any long random string (`openssl rand -hex 32`) |
+| `APP_PASSCODE` | a long passcode, entered once per device |
 
-Edit `watchlist.json`:
+Redeploy after setting them.
 
-```jsonc
-{
-  "playerName": "Suriyajan, Chayapol",  // as it appears on chess-results
-  "fideId": "6200456",                  // optional but strongly recommended
-  "autoDiscover": true,                 // search chess-results for your tournaments
-  "tournaments": [                      // pinned tournaments, always polled
-    { "id": "1146458", "label": "Bangkok Open 2026", "enabled": true }
-  ]
-}
-```
+### 4. Schedule the poller
 
-Set `fideId` if you have one. Name matching is accent- and order-insensitive, but two
-players sharing a surname will make the run stop with a clear error rather than guess.
+Create a free job on [cron-job.org](https://cron-job.org):
 
-### 3. Generate VAPID keys
+- **URL:** `https://<your-app>.vercel.app/api/poll`
+- **Schedule:** every 1 minute (or every 2 minutes)
+- **Advanced → Headers:** `Authorization: Bearer <CRON_SECRET>`
 
-```bash
-npx web-push generate-vapid-keys
-```
+Why cron-job.org? Vercel's own cron needs the Pro plan to run more than once a day.
+cron-job.org is free, and polling every 1–2 minutes is what gets alerts down from the
+old 10–25 minutes to 1–2 minutes.
 
-- Paste the **public** key into `VAPID_PUBLIC_KEY` at the top of `web/app.js` and commit it.
-  It is public by design.
-- Add these repository secrets (Settings → Secrets and variables → Actions):
+### 5. Install on your phone
 
-  | Secret | Value |
-  |---|---|
-  | `VAPID_PUBLIC_KEY` | the public key |
-  | `VAPID_PRIVATE_KEY` | the private key — **never commit this** |
-  | `VAPID_SUBJECT` | `mailto:you@example.com` |
+- **iPhone:** open the site in Safari → Share → **Add to Home Screen**, then open
+  **Pairings** from the Home Screen. iOS only allows web push from Home Screen apps.
+- **Android:** Chrome → **Install app**.
 
-### 4. Install the app on your phone
+### 6. First run
 
-Open your Pages URL in Safari → Share → **Add to Home Screen** → open **Pairings** from the
-Home Screen (not from Safari).
+1. Enter your passcode.
+2. **Follow** → *Add yourself*: your name exactly as chess-results writes it
+   (`Surname, Given`) or your FIDE ID, and optionally the tournament link. Tick
+   *This is me*.
+3. **Settings** → *Enable alerts* → *Send test alert*.
 
-### 5. Turn on notifications
-
-In the app, tap **Enable notifications**, allow the prompt, then copy the JSON it shows and
-save it as the repository secret `PUSH_SUBSCRIPTION`.
-
-This is a one-time manual step, and it is deliberate: a push subscription is effectively a
-bearer credential — anyone holding it can push notifications to your phone — so it belongs
-in a secret, never in the repo. With no backend there is nowhere else to put it.
-
-### 6. Confirm it works
-
-Actions → **Poll chess-results** → *Run workflow* with **dry run** ticked. The log should
-show your tournaments, your start number, and the rounds it parsed. Then untick dry run and
-run it for real.
+A new player's existing rounds are recorded silently. You only get alerts for rounds
+paired after you start following, never a burst of old ones.
 
 ---
 
-## Fast watching: near-instant alerts
+## How good is the forecast?
 
-The 10–25 minute latency above comes entirely from *when the poller runs at all*, not from
-the code. `watch.yml` fixes that by running one long GitHub Actions job that loops
-internally — poll, diff, push, sleep 20s, repeat — for ~5h40m, then re-triggers itself so
-the loop keeps going. Latency drops to about the polling interval: **~20–30 seconds**.
-Polling chess-results every 20s during an active round is normal spectator traffic, not
-abuse.
+Real pairings are made by the arbiter's software (FIDE Dutch system), and they are also
+affected by withdrawals, late entries and requested byes that nobody announces in
+advance. So the app shows **odds, not a promise**, and always labels them as a prediction.
 
-You start and stop it with the **Fast watching** button in the app. Because a static page
-can't hold a secret, that button needs a GitHub token in the browser to call the Actions
-API directly — this is a real, deliberate tradeoff for a personal single-user tool, not an
-oversight:
+The forecast works in three steps:
+1. It simulates the unfinished boards from the players' ratings.
+2. It pairs the next round with a simplified Dutch pairer.
+3. It repeats this a few hundred times and counts how often each opponent comes up.
 
-- The token is a **fine-grained PAT scoped to only this repository**, with **Actions: Read
-  and write** and nothing else. It cannot touch any other repo or do anything beyond
-  starting/stopping this one workflow.
-- It lives in this device's `localStorage` only — never committed, never sent anywhere
-  except `api.github.com`.
-- Compare this to the alternative of adding a real backend (a Cloudflare Worker, a VPS) just
-  to hide this token server-side — that reintroduces the "no servers" tradeoff this project
-  was built to avoid, for a token whose blast radius is already capped to one repo's Actions.
+Round robins are read straight from the Berger tables.
 
-### Setup
+Measured on real events (checked 2026-09-19):
 
-1. **Create the token**: [github.com/settings/personal-access-tokens/new](https://github.com/settings/personal-access-tokens/new)
-   → Repository access: **Only select repositories** → this repo → Permissions →
-   **Actions: Read and write**. Give it an expiry you're comfortable renewing later.
-2. **Add repo secret `WATCH_DISPATCH_PAT`** with that same token. This is what lets
-   `watch.yml` re-trigger itself across the ~6-hour job limit — GitHub deliberately blocks
-   the built-in `GITHUB_TOKEN` from doing this, specifically to stop workflows from
-   accidentally re-triggering themselves forever, so a real PAT is required here.
-3. **In `web/app.js`**, check `REPO_OWNER` / `REPO_NAME` / `REPO_REF` at the top match your
-   fork and branch (`REPO_REF` is whatever branch `watch.yml` lives on — update it if you
-   later merge onto your default branch).
-4. **In the app**, paste the same token into the Fast watching panel once. It's stored per
-   device — do this again on any other phone/browser you use to start/stop it.
+| Test | Exact opponent | Opponent in top 3 | Colour |
+|---|---|---|---|
+| Replaying a 65-player rapid (rounds 2–5) | 66% | — | — |
+| Replaying a 31-player blitz with many dropouts (rounds 2–9) | 45% | — | — |
+| **Live**: predicted mid-round-2, checked against the real round 3 (18 players) | 33% | 50% | 89% |
 
-### Using it
-
-Tap **Start watching** right before your round. It covers up to ~23 hours via its own
-re-chaining (4 links × ~5h40m) before stopping itself as a safety net — tap Start again if
-you're still playing after that. Tap **Stop watching** when you're done; this cancels the
-running job, which is what actually breaks the re-chain (a cancelled job skips its
-re-trigger step). Leaving it running costs nothing on a public repo — GitHub-hosted Actions
-runners are free/unlimited there — but stopping it when you're not playing is still good
-hygiene.
-
-### An assumption I could not verify
-
-The Fast watching button calls `api.github.com` directly from the browser, which only works
-if GitHub's REST API sends CORS headers on these specific endpoints (workflow dispatch,
-run listing, run cancellation). I could not confirm this from the sandbox this was built
-in — its own network proxy intercepts `api.github.com` and returns a synthetic error before
-the request ever reaches GitHub, so every CORS test I ran was testing my own mock, not the
-real API. **Please verify this yourself as the first thing you do**: open the app, paste
-your token, tap Start watching, and check whether it works. If your browser's console shows
-a CORS error instead, the fallback is to start/stop `watch.yml` from the Actions tab on
-GitHub directly (a "Run workflow" button gets you the same result, just without the app
-UI) — the workflow itself doesn't depend on the button at all.
+Each event page shows the model's hit rate on that event's own earlier rounds, so you
+can see how much to trust it there.
 
 ---
 
-## Verifying the scrape against the live site
+## Being polite to chess-results
 
-`chess-results.com` may be unreachable from your development machine, and its exact URL
-parameters are not documented. Use the runner instead:
+chess-results is a small, volunteer-run service with no API. This app:
 
-Actions → **Capture chess-results fixtures** → run it with a tournament id and your name.
+- identifies itself with a descriptive `User-Agent` and spaces requests 1.2 s apart,
+  backing off on errors;
+- caches your start number, so a normal poll is **one request per followed player**;
+- polls quiet events less often: every tick while active, every 15 minutes after 6
+  quiet hours, and every 6 hours after 3 days;
+- runs auto-discovery at most every 30 minutes, and only keeps events that are current;
+- serves browsing through a CDN-cached proxy, so everyone viewing the same standings
+  costs chess-results one request per minute.
 
-It downloads the raw HTML, runs every parser against it, and prints `PARSE OK` / `PARSE
-FAIL` per parser. Download the artifact and commit the HTML into `scripts/__fixtures__/` as
-`real-*.html` so future changes are tested against genuine markup.
+Please keep it that way if you change the intervals.
 
 ---
 
 ## When it breaks
 
+chess-results can change its markup without warning. All the parsers live in
+`lib/chessresults/`, read columns **by header name**, and are tested against real
+captured pages.
+
 | Symptom | Where to look |
 |---|---|
-| "Auto-discovery is down" banner in the app | `scripts/chessresults/search.js`. The app keeps working on pinned tournaments — add yours to `watchlist.json` and you lose nothing. |
-| `No table found with columns …` | Column headings changed. Add the new heading to the alias lists in `playercard.js` / `tournament.js`. |
-| Notifications stop, log says HTTP 410 | Subscription expired (usually a reinstall). Redo step 5. |
-| Nothing runs for weeks | GitHub disables scheduled workflows after 60 days of repository inactivity. Push any commit, or run the workflow manually, to re-arm it. |
-| Wrong player matched | Set `fideId` in `watchlist.json`. |
-| Fast watching button says "Could not reach GitHub" | Likely CORS (see [Fast watching](#fast-watching-near-instant-alerts)) or an expired token. Use the Actions tab directly as a fallback. |
-| Fast watching stopped re-chaining after one link | `WATCH_DISPATCH_PAT` secret is missing/expired, or you hit the 4-link safety cap — check the last `watch.yml` run's "Chain to the next link" step log. |
+| "Auto-discovery degraded" banner | `lib/chessresults/search.js`. Tournaments added by link keep working. |
+| `No table found with columns …` | A column heading changed. Add the new heading to the alias list in the matching parser. |
+| No alerts, but data updates | Settings → *Send test alert*. Dead devices (HTTP 404/410) are removed automatically; re-enable alerts on that phone. |
+| Nothing updates at all | Check cron-job.org's history for `/api/poll` (401 means `CRON_SECRET` doesn't match). |
+| Wrong player matched | Add the FIDE ID on the Follow tab. |
 
-The parsers read columns **by header name**, not by position, so an added or reordered
-column does not break them. That is the main reason to fix parsers here rather than
-rewriting them.
+To check the parsers against today's markup:
+
+```bash
+npm run capture -- --tournament 1486488 --name "Surname, Given"
+```
+
+It downloads each page type, runs every parser on it, prints `PARSE OK` / `PARSE FAIL`,
+and saves the HTML in `lib/__fixtures__/captured/`. It also runs as the manual *Capture
+chess-results fixtures* GitHub Action.
 
 ---
 
@@ -194,34 +156,32 @@ rewriting them.
 
 ```bash
 npm install
-npm test               # 22 tests, fully offline
-npm run poll -- --dry-run
+npm run dev        # http://localhost:3000, in-memory store, no passcode, poll open
+npm test           # node --test, fully offline (real captured pages as fixtures)
+npm run typecheck
 ```
 
-`--dry-run` parses and diffs but sends no push and writes no files.
+To run one poll by hand without sending anything:
+
+```bash
+curl "http://localhost:3000/api/poll?dryRun=1"
+```
+
+`/design` (development only) shows every UI component.
 
 ## Layout
 
 ```
-watchlist.json              who and what to watch
-scripts/
-  poll.js                   the whole backend, run by Actions
-  watch.js                  fast-poll loop for watch.yml (Fast watching)
-  diff.js                   which pairings are new (seeds silently, ignores byes)
-  notify.js                 web-push sending
-  chessresults/
-    client.js               polite HTTP: identifies itself, throttles, backs off
-    table.js                header-name-driven table reading
-    playercard.js           art=9 -> round / board / opponent / rating / colour
-    tournament.js           starting rank -> your start number
-    search.js               auto-discovery (the fragile part, always optional)
-web/                        the PWA served by Pages
-data/                       pairings.json (the feed) + state.json (what we've seen)
+app/                    Next.js routes: screens and /api
+  api/poll              the poller, called by cron
+  api/cr/[id]/…         cached chess-results proxy (overview, pairings, standings, player)
+components/             screens and UI primitives (components/ui)
+lib/chessresults/       polite HTTP client + parsers (one per page type)
+lib/predict/            Swiss model, Berger tables, forecast / Monte Carlo
+lib/poll.js             one poll tick: discover → observe → diff → push → feed
+lib/diff.js             which pairings are new (seeds silently, ignores byes)
+lib/notify.js           lock-screen copy + multi-device web push
+lib/store/              Upstash Redis store (in-memory fallback for development)
+server/                 passcode session, cron auth, proxy caching
+public/sw.js            service worker: push display + offline copy
 ```
-
-## A note on scraping politely
-
-chess-results is a small, volunteer-run service. This client identifies itself with a
-descriptive `User-Agent`, serialises requests ~1.2s apart, backs off on failure, and fetches
-each tournament at most once per run — a handful of requests every ten minutes. Please keep
-it that way if you change the polling interval.
