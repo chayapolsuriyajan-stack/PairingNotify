@@ -7,6 +7,8 @@ export interface JsonState<T> {
   error: string | null;
   status: number | null;
   loading: boolean;
+  /** True while any request (first load or refresh) is in flight. */
+  fetching: boolean;
   /** True when the service worker answered from its offline copy. */
   offline: boolean;
   updatedAt: number | null;
@@ -19,7 +21,8 @@ export interface JsonState<T> {
  * on errors so the screen never goes blank mid-tournament.
  */
 export function useJson<T>(url: string | null, { refreshMs = 0 }: { refreshMs?: number } = {}): JsonState<T> {
-  const [state, setState] = useState<Omit<JsonState<T>, 'reload'>>({
+  const [fetching, setFetching] = useState(false);
+  const [state, setState] = useState<Omit<JsonState<T>, 'reload' | 'fetching'>>({
     data: undefined,
     error: null,
     status: null,
@@ -32,6 +35,7 @@ export function useJson<T>(url: string | null, { refreshMs = 0 }: { refreshMs?: 
 
   const load = useCallback(async () => {
     if (!url) return;
+    setFetching(true);
     try {
       const response = await fetch(url, { cache: 'no-store' });
       const body = await response.json().catch(() => ({}));
@@ -51,6 +55,8 @@ export function useJson<T>(url: string | null, { refreshMs = 0 }: { refreshMs?: 
     } catch {
       if (current.current !== url) return;
       setState((s) => ({ ...s, loading: false, offline: true, error: s.data ? null : 'Offline, and no saved copy yet.' }));
+    } finally {
+      if (current.current === url) setFetching(false);
     }
   }, [url]);
 
@@ -69,5 +75,5 @@ export function useJson<T>(url: string | null, { refreshMs = 0 }: { refreshMs?: 
     };
   }, [url, load, refreshMs]);
 
-  return { ...state, reload: load };
+  return { ...state, fetching, reload: load };
 }

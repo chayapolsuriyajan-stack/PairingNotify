@@ -6,13 +6,16 @@ export type ChipTone = 'neutral' | 'accent' | 'info' | 'alert' | 'ok';
 export function Chip({
   tone = 'neutral',
   solid = false,
+  pulse = false,
   children,
 }: {
   tone?: ChipTone;
   solid?: boolean;
+  /** Slow lamp blink, for LIVE. */
+  pulse?: boolean;
   children: ReactNode;
 }) {
   return (
-    <span className={`ef-chip ef-chip--${tone}${solid ? ' ef-chip--solid' : ''}`}>{children}</span>
+    <span className={`ef-chip ef-chip--${tone}${solid ? ' ef-chip--solid' : ''}${pulse ? ' ef-chip--pulse' : ''}`}>{children}</span>
   );
 }

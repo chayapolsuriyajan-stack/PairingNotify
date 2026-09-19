@@ -3,6 +3,7 @@ import { Rajdhani, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import './ui.css';
 import './screens.css';
+import './motion.css';
 import { AppChrome } from '@/components/AppChrome';
 
 const display = Rajdhani({

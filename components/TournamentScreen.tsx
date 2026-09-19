@@ -11,6 +11,7 @@ import { PlayerCardView } from './PlayerCardView';
 import { ForecastCard } from './ForecastCard';
 import { useJson } from './useJson';
 import { useAccount } from './useAccount';
+import { Changed, Loading } from './Motion';
 
 type Tab = 'pairings' | 'standings' | 'card' | 'info';
 
@@ -56,9 +57,17 @@ export function TournamentScreen({ id, p, tab: initialTab }: { id: string; p: nu
       <TopBar
         caption={`EVENT ${id}`}
         title="Event"
-        right={<SyncReadout label={syncLabel(overview.updatedAt)} offline={overview.offline} onRefresh={overview.reload} />}
+        right={
+          <SyncReadout
+            label={syncLabel(overview.updatedAt)}
+            offline={overview.offline}
+            busy={overview.fetching}
+            onRefresh={overview.reload}
+          />
+        }
       />
 
+      {overview.loading && !data && <Loading label={`Reading event ${id}`} />}
       {overview.error && !data && (
         <HazardBanner label="Can't load this event">
           {overview.error}. Check the tournament id, or try again in a minute.
@@ -77,7 +86,7 @@ export function TournamentScreen({ id, p, tab: initialTab }: { id: string; p: nu
               </Chip>
             )}
             {live && (
-              <Chip tone="accent" solid>
+              <Chip tone="accent" solid pulse>
                 Live
               </Chip>
             )}
@@ -86,7 +95,7 @@ export function TournamentScreen({ id, p, tab: initialTab }: { id: string; p: nu
           </div>
           {mePlayer && (
             <p className="ef-event__me">
-              {tidyName(mePlayer.name)} · #{mePlayer.startNo} · {points(mePlayer.points)} pts
+              {tidyName(mePlayer.name)} · #{mePlayer.startNo} · <Changed value={mePlayer.points}>{points(mePlayer.points)}</Changed> pts
               {mePlayer.rank ? ` · rank ${mePlayer.rank}` : ''}
             </p>
           )}
@@ -173,7 +182,7 @@ function PairingsView({ id, round, me }: { id: string; round: number; me: number
     <>
       <Search value={query} onChange={setQuery} placeholder="Find a player or board" />
       {pairings.error && !pairings.data && <p className="ef-error">{pairings.error}</p>}
-      {pairings.loading && !pairings.data && <p className="ef-help">Loading round {round}…</p>}
+      {pairings.loading && !pairings.data && <Loading label={`Reading round ${round} pairings`} />}
       {mine && !query && (
         <>
           <p className="ef-kicker">Your board</p>
@@ -205,7 +214,9 @@ function PairRow({ id, game, me }: { id: string; game: Pairing; me: number | nul
       </span>
       <span className="ef-pair__rtg">{s.rating ?? '—'}</span>
       <span className="ef-pair__pts">{points(s.points)}</span>
-      <span className="ef-pair__score">{score == null ? '' : points(score)}</span>
+      <Changed value={score} className="ef-pair__score">
+        {score == null ? '' : points(score)}
+      </Changed>
     </Link>
   );
 
@@ -248,7 +259,7 @@ function StandingsView({ id, round, me }: { id: string; round: number | null; me
       )}
       <Search value={query} onChange={setQuery} placeholder="Find a player or federation" />
       {standings.error && !standings.data && <p className="ef-error">{standings.error}</p>}
-      {standings.loading && !standings.data && <p className="ef-help">Loading standings…</p>}
+      {standings.loading && !standings.data && <Loading label="Reading standings" />}
       <ul className="ef-rows">
         {shown.map((r) => (
           <li
@@ -266,7 +277,9 @@ function StandingsView({ id, round, me }: { id: string; round: number | null; me
                 <span className="ef-sub">{[r.federation, r.rating ?? 'Unrated'].filter(Boolean).join(' · ')}</span>
               </Link>
             </span>
-            <span className="ef-row__trail">{points(r.points)}</span>
+            <Changed value={r.points} className="ef-row__trail">
+              {points(r.points)}
+            </Changed>
           </li>
         ))}
       </ul>
@@ -277,7 +290,7 @@ function StandingsView({ id, round, me }: { id: string; round: number | null; me
 function CardView({ id, me }: { id: string; me: number }) {
   const player = useJson<PlayerResponse>(`/api/cr/${id}/player/${me}`, { refreshMs: 60_000 });
   if (player.error && !player.data) return <p className="ef-error">{player.error}</p>;
-  if (!player.data) return <p className="ef-help">Loading your card…</p>;
+  if (!player.data) return <Loading label="Reading your card" />;
   return (
     <>
       <p className="ef-kicker">{tidyName(player.data.header.name)}</p>

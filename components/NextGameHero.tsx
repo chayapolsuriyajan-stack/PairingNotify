@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import type { FeedTournament } from '@/lib/client/types';
 import { countdown, hhmm, pad2, resultLabel, tidyName } from '@/lib/client/format';
 import { Scramble } from './Scramble';
+import { Changed, ScanLine } from './Motion';
 
 /**
  * The first thing you see: where you sit, who you play, which colour. Board number,
@@ -40,6 +41,8 @@ export function NextGameHero({
   }
 
   const done = Boolean(game.result);
+  const minutesToStart = start ? (start.getTime() - now) / 60_000 : null;
+  const urgent = !done && minutesToStart != null && minutesToStart > 0 && minutesToStart <= 10;
   const colour = game.colour;
   const meta = [`RD ${pad2(game.round)}`, game.board != null ? `BD ${game.board}` : null, start ? hhmm(start) : null]
     .filter(Boolean)
@@ -47,6 +50,7 @@ export function NextGameHero({
 
   return (
     <section className={`ef-hero${isNew ? ' ef-hero--new' : ''}`} aria-label={label}>
+      <ScanLine value={`${game.round}:${game.board}:${game.opponent}:${game.colour}:${game.result}`} />
       <div className="ef-hero__watermark" aria-hidden="true">
         {pad2(game.round)}
       </div>
@@ -71,14 +75,16 @@ export function NextGameHero({
 
       <div className="ef-hero__opp">
         <span className="ef-hero__label">Opponent</span>
-        <p className="ef-hero__name">{tidyName(game.opponent)}</p>
+        <p className="ef-hero__name">
+          <Changed value={game.opponent}>{tidyName(game.opponent)}</Changed>
+        </p>
         <p className="ef-hero__facts">
           {[game.rating ? String(game.rating) : 'Unrated', game.federation].filter(Boolean).join(' · ')}
         </p>
       </div>
 
       <div className="ef-hero__foot">
-        <p className="ef-hero__status">
+        <p className={`ef-hero__status${urgent ? ' ef-hero__status--urgent' : ''}`}>
           {done
             ? `RESULT ${resultLabel(game.result)} · WAITING FOR RD ${game.round + 1}`
             : start

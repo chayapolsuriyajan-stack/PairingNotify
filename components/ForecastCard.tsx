@@ -7,6 +7,7 @@ import { forecast, trackRecord } from '@/lib/predict/forecast.js';
 import { percent, tidyName } from '@/lib/client/format';
 import { Segmented } from './Segmented';
 import { Chip } from './ui';
+import { CountUp, Loading } from './Motion';
 
 type Scenario = 'auto' | 'win' | 'draw' | 'loss';
 
@@ -42,9 +43,10 @@ export function ForecastCard({ overview, me, compact = false }: { overview: Over
   const [scenario, setScenario] = useState<Scenario>('auto');
   const [result, setResult] = useState<Forecast | null>(null);
 
-  // Run after paint: a few hundred simulated rounds takes tens of milliseconds.
+  // Run after paint: a few hundred simulated rounds takes tens of milliseconds. The
+  // previous result stays on screen meanwhile, so switching scenario doesn't blank the
+  // card (and the WIN/DRAW/LOSS ink can slide instead of remounting).
   useEffect(() => {
-    setResult(null);
     const timer = setTimeout(() => {
       setResult(
         forecast(overview, {
@@ -97,7 +99,7 @@ export function ForecastCard({ overview, me, compact = false }: { overview: Over
           />
         )}
 
-        {!result && <p className="ef-help">Simulating the rest of the round…</p>}
+        {!result && <Loading label="Simulating the rest of the round" />}
 
         {result && shown.length === 0 && (
           <p className="ef-help">
@@ -122,7 +124,13 @@ export function ForecastCard({ overview, me, compact = false }: { overview: Over
                   )}
                   <Bar value={c.probability} />
                 </div>
-                <span className="ef-row__trail">{percent(c.probability)}</span>
+                <span className="ef-row__trail">
+                  {c.probability > 0 && c.probability < 0.01 ? (
+                    percent(c.probability)
+                  ) : (
+                    <CountUp value={c.probability * 100} format={(n) => `${Math.round(n)}%`} />
+                  )}
+                </span>
               </li>
             ))}
           </ul>
@@ -168,7 +176,11 @@ function Bar({ value }: { value: number }) {
   return (
     <span className="ef-bar" aria-hidden="true">
       {Array.from({ length: 10 }, (_, i) => (
-        <span key={i} className={`ef-bar__seg${i < lit ? ' ef-bar__seg--on' : ''}`} />
+        <span
+          key={i}
+          className={`ef-bar__seg${i < lit ? ' ef-bar__seg--on' : ''}`}
+          style={{ '--i': i } as React.CSSProperties}
+        />
       ))}
     </span>
   );

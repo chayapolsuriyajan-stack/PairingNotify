@@ -9,6 +9,7 @@ import { PasscodeGate } from '@/components/PasscodeGate';
 import { SyncReadout, TopBar } from '@/components/TopBar';
 import { markSeen, useAccount } from '@/components/useAccount';
 import { useJson } from '@/components/useJson';
+import { Loading } from '@/components/Motion';
 import type { FeedFollow, Overview } from '@/lib/client/types';
 import { pad2, roundStart, syncLabel, tidyName } from '@/lib/client/format';
 
@@ -41,6 +42,7 @@ export default function NowPage() {
             <SyncReadout
               label={syncLabel(generatedAt ?? feed.updatedAt)}
               offline={feed.offline}
+              busy={feed.fetching || overview.fetching}
               onRefresh={() => {
                 feed.reload();
                 overview.reload();
@@ -52,7 +54,7 @@ export default function NowPage() {
 
       {needsLogin && <PasscodeGate onUnlocked={unlock} />}
       {config.error && !config.data && <HazardBanner label="No connection">{config.error}</HazardBanner>}
-      {loading && !needsLogin && <p className="ef-help">Loading…</p>}
+      {loading && !needsLogin && <Loading label="Syncing pairings" />}
 
       {!loading && !needsLogin && feed.data && follows.length === 0 && feed.data.follows.length === 0 && (
         <Panel code="01 / SETUP" title="Who are you?" serial="AIC-PN-0001">

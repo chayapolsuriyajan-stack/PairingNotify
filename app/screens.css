@@ -125,11 +125,6 @@ a { color: inherit; }
   clip-path: var(--ef-chamfer-clip);
   box-shadow: inset 4px 0 0 var(--accent);
 }
-.ef-hero--new { animation: ef-wipe 220ms var(--ef-ease) both; }
-@keyframes ef-wipe {
-  from { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); }
-  to { clip-path: var(--ef-chamfer-clip); }
-}
 .ef-hero__watermark {
   position: absolute;
   right: -6px;
@@ -138,6 +133,7 @@ a { color: inherit; }
   color: var(--text);
   opacity: 0.05;
   pointer-events: none;
+  z-index: 0;
   user-select: none;
 }
 .ef-hero__head, .ef-hero__grid, .ef-hero__opp, .ef-hero__foot, .ef-hero__event { position: relative; }

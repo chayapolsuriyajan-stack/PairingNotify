@@ -1,0 +1,178 @@
+/*
+ * Motion (design.md §6): fast and mechanical — 120–220ms, no springs.
+ *  - things arrive with a horizontal wipe, staggered like a terminal booting;
+ *  - indicators slide instead of jumping;
+ *  - scanline / flicker only when data actually changed;
+ *  - loading is a segmented bar, not a spinner.
+ * Entrance animations use fill-mode `backwards`, so once they finish the element's own
+ * styles (including chamfer clip-paths) apply again. Nothing can get stuck hidden.
+ * `prefers-reduced-motion` turns all of it off (globals.css).
+ */
+
+:root {
+  --ef-wipe-from: polygon(0 0, 0 0, 0 100%, 0 100%);
+  --ef-wipe-to: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+}
+
+@keyframes ef-wipe-in {
+  from { clip-path: var(--ef-wipe-from); opacity: 0.4; }
+  to { clip-path: var(--ef-wipe-to); opacity: 1; }
+}
+@keyframes ef-wipe-in-chamfer {
+  from { clip-path: var(--ef-wipe-from); opacity: 0.4; }
+  to { clip-path: var(--ef-chamfer-clip); opacity: 1; }
+}
+@keyframes ef-rise {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- Screen boot: children of the page wipe in, one after another ---------- */
+.ef-page > * { animation: ef-wipe-in 220ms var(--ef-ease) backwards; }
+.ef-page > .ef-panel,
+.ef-page > .ef-hero { animation-name: ef-wipe-in-chamfer; }
+.ef-page > :nth-child(2) { animation-delay: 40ms; }
+.ef-page > :nth-child(3) { animation-delay: 80ms; }
+.ef-page > :nth-child(4) { animation-delay: 120ms; }
+.ef-page > :nth-child(5) { animation-delay: 160ms; }
+.ef-page > :nth-child(6) { animation-delay: 200ms; }
+.ef-page > :nth-child(n + 7) { animation-delay: 240ms; }
+
+/* ---------- Lists: rows slide in, staggered (capped so long lists stay quick) ---------- */
+.ef-rows > li,
+.ef-pairs > li { animation: ef-rise 180ms var(--ef-ease) backwards; }
+.ef-rows > li:nth-child(2), .ef-pairs > li:nth-child(2) { animation-delay: 25ms; }
+.ef-rows > li:nth-child(3), .ef-pairs > li:nth-child(3) { animation-delay: 50ms; }
+.ef-rows > li:nth-child(4), .ef-pairs > li:nth-child(4) { animation-delay: 75ms; }
+.ef-rows > li:nth-child(5), .ef-pairs > li:nth-child(5) { animation-delay: 100ms; }
+.ef-rows > li:nth-child(6), .ef-pairs > li:nth-child(6) { animation-delay: 125ms; }
+.ef-rows > li:nth-child(7), .ef-pairs > li:nth-child(7) { animation-delay: 150ms; }
+.ef-rows > li:nth-child(8), .ef-pairs > li:nth-child(8) { animation-delay: 175ms; }
+.ef-rows > li:nth-child(n + 9), .ef-pairs > li:nth-child(n + 9) { animation-delay: 200ms; }
+
+/* ---------- Hero ---------- */
+/* Watermark round number slides in behind the card. */
+@keyframes ef-watermark-in {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 0.05; transform: none; }
+}
+.ef-hero__watermark { animation: ef-watermark-in 420ms var(--ef-ease) 120ms backwards; }
+
+/* Board numeral and colour block drop into place. */
+@keyframes ef-stamp {
+  0% { opacity: 0; transform: translateY(-6px); }
+  60% { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+.ef-hero__num { animation: ef-stamp 200ms var(--ef-ease) 140ms backwards; }
+.ef-hero__colour { animation: ef-wipe-in 200ms var(--ef-ease) 200ms backwards; }
+.ef-hero__opp { animation: ef-rise 200ms var(--ef-ease) 260ms backwards; }
+
+/* A new pairing: brief signal-yellow flash on the accent bar. */
+@keyframes ef-hero-alert {
+  0%, 100% { box-shadow: inset 4px 0 0 var(--accent); }
+  20%, 60% { box-shadow: inset 12px 0 0 var(--accent); }
+}
+.ef-page > .ef-hero--new {
+  animation: ef-wipe-in-chamfer 220ms var(--ef-ease) backwards, ef-hero-alert 600ms steps(4) 260ms 1;
+}
+
+/* Scanline sweep: runs once whenever the data under it changes. */
+.ef-scan { position: relative; }
+.ef-scan__line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -36px;
+  height: 36px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--accent) 22%, transparent), transparent);
+  animation: ef-scan 520ms linear 1 both;
+  z-index: 3;
+}
+@keyframes ef-scan {
+  from { top: -36px; opacity: 1; }
+  to { top: 100%; opacity: 0.2; }
+}
+
+/* Under 10 minutes to the round: the status line blinks like a warning lamp. */
+@keyframes ef-lamp { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.35; } }
+.ef-hero__status--urgent { color: var(--alert); animation: ef-lamp 1s steps(1) infinite; }
+
+/* ---------- Sliding indicators ---------- */
+.ef-tabs__ink {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  height: 3px;
+  background: var(--accent);
+  transition: transform 220ms var(--ef-ease), width 220ms var(--ef-ease);
+}
+.ef-seg { position: relative; }
+.ef-seg__ink {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: var(--accent);
+  transition: transform 180ms var(--ef-ease), width 180ms var(--ef-ease);
+  z-index: 0;
+}
+.ef-seg__item { z-index: 1; transition: color 120ms var(--ef-ease); }
+.ef-seg--inked .ef-seg__item--on { background: transparent; }
+
+/* ---------- Data changes ---------- */
+@keyframes ef-flash {
+  0% { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+  100% { background: transparent; }
+}
+.ef-changed { animation: ef-flicker 180ms steps(3) 1, ef-flash 700ms var(--ef-ease) 1; }
+
+/* Forecast bar: segments light up left to right. */
+@keyframes ef-seg-on { from { background: var(--line); } to { background: var(--accent); } }
+.ef-bar__seg--on { animation: ef-seg-on 60ms steps(1) backwards; animation-delay: calc(var(--i) * 35ms + 120ms); }
+
+/* LIVE chip: slow lamp. */
+@keyframes ef-live { 0%, 70% { opacity: 1; } 71%, 100% { opacity: 0.45; } }
+.ef-chip--pulse { animation: ef-live 1.6s steps(1) infinite; }
+
+/* ---------- Loading: segmented bar with a hazard-stripe crawl ---------- */
+.ef-loading { display: grid; gap: 6px; margin: 16px 0; }
+.ef-loading__label {
+  font: 400 11px var(--font-mono-stack);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ef-loading__bar { display: flex; gap: 3px; }
+.ef-loading__seg {
+  flex: 1;
+  height: 6px;
+  background: var(--line);
+  animation: ef-load 1s steps(1) infinite;
+  animation-delay: calc(var(--i) * 80ms);
+}
+@keyframes ef-load { 0%, 30% { background: var(--accent); } 31%, 100% { background: var(--line); } }
+.ef-loading__stripe {
+  height: 4px;
+  background: repeating-linear-gradient(-45deg, var(--accent) 0 6px, var(--on-accent) 6px 12px);
+  animation: ef-crawl 600ms linear infinite;
+  opacity: 0.6;
+}
+/* One stripe period horizontally: 12px * sqrt(2), so the loop is seamless. */
+@keyframes ef-crawl { from { background-position: 0 0; } to { background-position: 16.97px 0; } }
+
+/* ---------- Controls ---------- */
+.ef-iconbtn { transition: transform 120ms var(--ef-ease); }
+.ef-iconbtn--busy { animation: ef-spin 700ms steps(8) infinite; }
+@keyframes ef-spin { to { transform: rotate(360deg); } }
+.ef-btn__arrow { transition: transform 120ms var(--ef-ease); }
+.ef-btn:hover .ef-btn__arrow,
+.ef-btn:active .ef-btn__arrow { transform: translateX(4px); }
+.ef-btn:active { transform: translateY(1px); }
+.ef-link { transition: letter-spacing 160ms var(--ef-ease), opacity 120ms; }
+.ef-link:active { letter-spacing: 0.2em; opacity: 0.7; }
+
+/* Row press feedback. */
+.ef-rowlink:active, .ef-pair__side:active { opacity: 0.6; }
+.ef-row { transition: background 160ms var(--ef-ease); }

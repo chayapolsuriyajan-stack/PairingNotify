@@ -9,6 +9,7 @@ import { HazardBanner } from './ui';
 import { SyncReadout, TopBar } from './TopBar';
 import { useJson } from './useJson';
 import { useAccount } from './useAccount';
+import { Loading } from './Motion';
 
 /** Full next-round forecast for one player (plan §3a). */
 export function NextScreen({ id, p }: { id: string; p: number | null }) {
@@ -26,8 +27,16 @@ export function NextScreen({ id, p }: { id: string; p: number | null }) {
       <TopBar
         caption={`EVENT ${id} // FORECAST`}
         title="Next"
-        right={<SyncReadout label={syncLabel(overview.updatedAt)} offline={overview.offline} onRefresh={overview.reload} />}
+        right={
+          <SyncReadout
+            label={syncLabel(overview.updatedAt)}
+            offline={overview.offline}
+            busy={overview.fetching}
+            onRefresh={overview.reload}
+          />
+        }
       />
+      {overview.loading && !overview.data && <Loading label={`Reading event ${id}`} />}
       {overview.error && !overview.data && <HazardBanner label="Can't load this event">{overview.error}</HazardBanner>}
 
       {overview.data && (

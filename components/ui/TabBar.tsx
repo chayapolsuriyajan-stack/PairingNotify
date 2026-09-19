@@ -8,20 +8,31 @@ export interface TabItem {
   label: string;
 }
 
-/** Bottom navigation. Active tab gets the yellow bar; inactive tabs stay visible but muted. */
+/**
+ * Bottom navigation. A yellow bar slides to the active tab; inactive tabs stay visible
+ * but muted.
+ */
 export function TabBar({ items }: { items: TabItem[] }) {
   const pathname = usePathname();
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
+  const index = items.findIndex((item) => isActive(item.href));
 
   return (
     <nav className="ef-tabs" aria-label="Main">
-      {items.map((item) => (
+      {index >= 0 && (
+        <span
+          className="ef-tabs__ink"
+          aria-hidden="true"
+          style={{ width: `${100 / items.length}%`, transform: `translateX(${index * 100}%)` }}
+        />
+      )}
+      {items.map((item, i) => (
         <Link
           key={item.href}
           href={item.href}
-          className={`ef-tab${isActive(item.href) ? ' ef-tab--active' : ''}`}
-          aria-current={isActive(item.href) ? 'page' : undefined}
+          className={`ef-tab${i === index ? ' ef-tab--active' : ''}`}
+          aria-current={i === index ? 'page' : undefined}
         >
           {item.label}
         </Link>

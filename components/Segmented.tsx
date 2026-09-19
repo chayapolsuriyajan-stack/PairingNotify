@@ -1,6 +1,11 @@
 'use client';
 
-/** Segmented control (tabs within a screen, round picker, WIN/DRAW/LOSS). */
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+
+/**
+ * Segmented control (tabs within a screen, round picker, WIN/DRAW/LOSS). A yellow ink
+ * block slides to the selected option instead of jumping.
+ */
 export function Segmented<T extends string | number>({
   options,
   value,
@@ -14,8 +19,46 @@ export function Segmented<T extends string | number>({
   label: string;
   scroll?: boolean;
 }) {
+  const container = useRef<HTMLDivElement>(null);
+  const [ink, setInk] = useState<{ x: number; w: number } | null>(null);
+  const ready = useRef(false);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const active = container.current?.querySelector<HTMLElement>('[aria-selected="true"]');
+      setInk(active ? { x: active.offsetLeft, w: active.offsetWidth } : null);
+      if (scroll && active) active.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    if (container.current) observer.observe(container.current);
+    return () => observer.disconnect();
+  }, [value, options.length, scroll]);
+
+  // The first position lands without sliding in from the left edge; after mount, every
+  // change slides. (A plain effect, not requestAnimationFrame, which background tabs pause.)
+  useEffect(() => {
+    ready.current = true;
+  }, []);
+
   return (
-    <div className={`ef-seg${scroll ? ' ef-seg--scroll' : ''}`} role="tablist" aria-label={label}>
+    <div
+      ref={container}
+      className={`ef-seg${scroll ? ' ef-seg--scroll' : ''}${ink ? ' ef-seg--inked' : ''}`}
+      role="tablist"
+      aria-label={label}
+    >
+      {ink && (
+        <span
+          className="ef-seg__ink"
+          aria-hidden="true"
+          style={{
+            width: ink.w,
+            transform: `translateX(${ink.x}px)`,
+            transition: ready.current ? undefined : 'none',
+          }}
+        />
+      )}
       {options.map((option) => (
         <button
           key={String(option.value)}

@@ -210,13 +210,6 @@
   text-decoration: none;
 }
 .ef-tab--active { color: var(--text); }
-.ef-tab--active::before {
-  content: '';
-  position: absolute;
-  left: 0; right: 0; top: -1px;
-  height: 3px;
-  background: var(--accent);
-}
 .ef-tab:focus-visible { outline: 2px solid var(--info); outline-offset: -4px; }
 
 /* Data-update flicker: applied by the caller only when something actually changed. */

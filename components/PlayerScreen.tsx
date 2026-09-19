@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { Overview, PlayerResponse } from '@/lib/client/types';
 import { nameKey, pad2, resultLabel, syncLabel, tidyName } from '@/lib/client/format';
 import { HazardBanner, Panel } from './ui';
+import { Loading } from './Motion';
 import { PlayerCardView } from './PlayerCardView';
 import { SyncReadout, TopBar } from './TopBar';
 import { useJson } from './useJson';
@@ -38,10 +39,17 @@ export function PlayerScreen({ id, startNo, me }: { id: string; startNo: number;
       <TopBar
         caption={`EVENT ${id} // PLAYER ${startNo}`}
         title="Scout"
-        right={<SyncReadout label={syncLabel(player.updatedAt)} offline={player.offline} onRefresh={player.reload} />}
+        right={
+          <SyncReadout
+            label={syncLabel(player.updatedAt)}
+            offline={player.offline}
+            busy={player.fetching}
+            onRefresh={player.reload}
+          />
+        }
       />
       {player.error && !player.data && <HazardBanner label="Can't load this player">{player.error}</HazardBanner>}
-      {!player.data && !player.error && <p className="ef-help">Loading…</p>}
+      {!player.data && !player.error && <Loading label="Reading player card" />}
 
       {player.data && (
         <>
