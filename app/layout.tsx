@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import { Rajdhani, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import './ui.css';
+import './screens.css';
+import { AppChrome } from '@/components/AppChrome';
 
 const display = Rajdhani({
   subsets: ['latin'],
@@ -28,7 +30,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <AppChrome />
+      </body>
     </html>
   );
 }

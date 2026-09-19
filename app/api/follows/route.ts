@@ -43,9 +43,6 @@ export async function POST(request: Request) {
   if (tournaments.length === 0 && !autoDiscover) {
     return Response.json({ error: 'Add a tournament, or turn on auto-discovery.' }, { status: 400 });
   }
-  if (autoDiscover && !playerName) {
-    return Response.json({ error: 'Auto-discovery searches by name, so enter the name too.' }, { status: 400 });
-  }
 
   const store = getStore();
   const all: Follow[] = await store.listFollows();
