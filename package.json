@@ -2,7 +2,7 @@
   "name": "pairingnotify",
   "version": "1.0.0",
   "private": true,
-  "description": "Watch chess-results.com for new pairings and push them to your phone.",
+  "description": "Mobile-first chess-results companion: pairing alerts, standings, next-opponent forecast.",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -11,7 +11,6 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "poll": "node scripts/poll.js",
     "capture": "node scripts/capture-fixtures.js",
     "test": "node --test lib/__tests__/*.test.js",
     "typecheck": "tsc --noEmit"
