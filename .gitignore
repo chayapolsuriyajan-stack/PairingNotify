@@ -8,3 +8,7 @@ next-env.d.ts
 .env*.local
 .vercel
 lib/__fixtures__/captured/
+
+.vercel
+.env*
+!.env.example
