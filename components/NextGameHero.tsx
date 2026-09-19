@@ -1,11 +1,10 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/NavLink';
 import { useEffect, useState } from 'react';
 import type { FeedTournament } from '@/lib/client/types';
 import { countdown, hhmm, pad2, resultLabel, tidyName } from '@/lib/client/format';
-import { Scramble } from './Scramble';
-import { Changed, ScanLine } from './Motion';
+import { Decode, Flicker, ScanLine } from './Motion';
 import { Brackets, Pawn, Ruler } from './Decor';
 
 /**
@@ -51,7 +50,10 @@ export function NextGameHero({
 
   return (
     <section className={`ef-hero${isNew ? ' ef-hero--new' : ''}`} aria-label={label}>
-      <ScanLine value={`${game.round}:${game.board}:${game.opponent}:${game.colour}:${game.result}`} />
+      {/* §6.6 new pairing: bar grows (G) → card wipes (A) → decode (C) → one flicker (F) */}
+      <span className="ef-hero__bar" aria-hidden="true" />
+      {/* a result arriving is a data change (§6.4): scan line only */}
+      <ScanLine value={game.result} />
       <Brackets />
       <div className="ef-hero__watermark" aria-hidden="true">
         {pad2(game.round)}
@@ -67,7 +69,7 @@ export function NextGameHero({
         <div className="ef-hero__board">
           <span className="ef-hero__label">Board</span>
           <span className="ef-hero__num">
-            <Scramble text={game.board != null ? String(game.board) : '–'} active={isNew} />
+            <Decode text={game.board != null ? String(game.board) : '–'} active={isNew} delay={160} />
           </span>
         </div>
         <div className={`ef-hero__colour ef-hero__colour--${colour ?? 'unknown'}`}>
@@ -82,7 +84,7 @@ export function NextGameHero({
       <div className="ef-hero__opp">
         <span className="ef-hero__label">Opponent</span>
         <p className="ef-hero__name">
-          <Changed value={game.opponent}>{tidyName(game.opponent)}</Changed>
+          <Decode text={tidyName(game.opponent)} active={isNew} delay={200} />
         </p>
         <p className="ef-hero__facts">
           {[game.rating ? String(game.rating) : 'Unrated', game.federation].filter(Boolean).join(' · ')}
@@ -90,13 +92,14 @@ export function NextGameHero({
       </div>
 
       <div className="ef-hero__foot">
-        <p className={`ef-hero__status${urgent ? ' ef-hero__status--urgent' : ''}`}>
+        {/* entering the last 10 minutes is an important state change: one flicker, no loop (§6.4) */}
+        <Flicker value={urgent} className={`ef-hero__status${urgent ? ' ef-hero__status--urgent' : ''}`}>
           {done
             ? `RESULT ${resultLabel(game.result)} · WAITING FOR RD ${game.round + 1}`
             : start
               ? countdown(start, now)
               : 'PAIRING PUBLISHED'}
-        </p>
+        </Flicker>
         {game.opponentNo != null && (
           <Link className="ef-link" href={`/t/${tournament.id}/p/${game.opponentNo}?me=${tournament.startNo}`}>
             Scout opponent ▶

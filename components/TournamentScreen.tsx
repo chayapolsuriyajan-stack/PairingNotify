@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/NavLink';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Overview, Pairing, PlayerResponse, StandingRow } from '@/lib/client/types';
 import { countdown, nameKey, points, roundStart, syncLabel, tidyName } from '@/lib/client/format';
@@ -11,7 +11,8 @@ import { PlayerCardView } from './PlayerCardView';
 import { ForecastCard } from './ForecastCard';
 import { useJson } from './useJson';
 import { useAccount } from './useAccount';
-import { Changed, Loading } from './Motion';
+import { CountUp, Decode, Loading, ScanLine } from './Motion';
+import { Screen } from '@/components/Screen';
 
 type Tab = 'pairings' | 'standings' | 'card' | 'info';
 
@@ -53,7 +54,7 @@ export function TournamentScreen({ id, p, tab: initialTab }: { id: string; p: nu
   const live = data?.players.some((x) => x.games.some((g) => g.kind === 'pending'));
 
   return (
-    <main className="ef-page">
+    <Screen>
       <TopBar
         caption={`EVENT ${id}`}
         title="Event"
@@ -86,7 +87,8 @@ export function TournamentScreen({ id, p, tab: initialTab }: { id: string; p: nu
               </Chip>
             )}
             {live && (
-              <Chip tone="accent" solid pulse>
+              <Chip tone="accent" solid>
+                <span className="ef-live-dot" aria-hidden="true">●</span>
                 Live
               </Chip>
             )}
@@ -95,7 +97,7 @@ export function TournamentScreen({ id, p, tab: initialTab }: { id: string; p: nu
           </div>
           {mePlayer && (
             <p className="ef-event__me">
-              {tidyName(mePlayer.name)} · #{mePlayer.startNo} · <Changed value={mePlayer.points}>{points(mePlayer.points)}</Changed> pts
+              {tidyName(mePlayer.name)} · #{mePlayer.startNo} · <CountUp value={mePlayer.points ?? 0} format={(n) => points(Math.round(n * 2) / 2)} /> pts
               {mePlayer.rank ? ` · rank ${mePlayer.rank}` : ''}
             </p>
           )}
@@ -131,7 +133,7 @@ export function TournamentScreen({ id, p, tab: initialTab }: { id: string; p: nu
       {tab === 'info' && data && <InfoView overview={data} />}
 
       {data?.started && me && tab === 'pairings' && <ForecastCard overview={data} me={me} compact />}
-    </main>
+    </Screen>
   );
 }
 
@@ -153,15 +155,17 @@ function RoundPicker({ rounds, value, onChange }: { rounds: number[]; value: num
 
 function Search({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
   return (
-    <input
-      className="ef-input ef-search"
-      type="search"
-      inputMode="search"
-      placeholder={placeholder}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      aria-label={placeholder}
-    />
+    <span className="ef-focus">
+      <input
+        className="ef-input ef-search"
+        type="search"
+        inputMode="search"
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={placeholder}
+      />
+    </span>
   );
 }
 
@@ -214,14 +218,15 @@ function PairRow({ id, game, me }: { id: string; game: Pairing; me: number | nul
       </span>
       <span className="ef-pair__rtg">{s.rating ?? '—'}</span>
       <span className="ef-pair__pts">{points(s.points)}</span>
-      <Changed value={score} className="ef-pair__score">
-        {score == null ? '' : points(score)}
-      </Changed>
+      <span className="ef-pair__score">
+        <Decode text={score == null ? '' : points(score)} decodeOnChange />
+      </span>
     </Link>
   );
 
   return (
-    <li className={`ef-pair${isMine ? ' ef-pair--mine' : ''}`}>
+    <li className={`ef-pair ef-scan-host${isMine ? ' ef-pair--mine' : ''}`}>
+      <ScanLine value={game.resultText} />
       <span className="ef-pair__bd">{game.board}</span>
       <div className="ef-pair__sides">
         {side(game.white, 'white', game.result?.white ?? null)}
@@ -277,9 +282,9 @@ function StandingsView({ id, round, me }: { id: string; round: number | null; me
                 <span className="ef-sub">{[r.federation, r.rating ?? 'Unrated'].filter(Boolean).join(' · ')}</span>
               </Link>
             </span>
-            <Changed value={r.points} className="ef-row__trail">
-              {points(r.points)}
-            </Changed>
+            <span className="ef-row__trail">
+              {r.points == null ? '–' : <CountUp value={r.points} format={(n) => points(Math.round(n * 2) / 2)} />}
+            </span>
           </li>
         ))}
       </ul>

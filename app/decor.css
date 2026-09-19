@@ -119,5 +119,3 @@ body {
 /* ---------- Standings: podium ranks ---------- */
 .ef-rank--podium { color: var(--accent-text); font-weight: 700; }
 
-/* ---------- Loading label gets a blinking cursor ---------- */
-.ef-loading__label::after { content: '_'; margin-left: 2px; animation: ef-lamp 1s steps(1) infinite; }

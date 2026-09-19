@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/NavLink';
 import type { Overview, PlayerResponse } from '@/lib/client/types';
 import { nameKey, pad2, resultLabel, syncLabel, tidyName } from '@/lib/client/format';
 import { HazardBanner, Panel } from './ui';
@@ -9,6 +9,7 @@ import { PlayerCardView } from './PlayerCardView';
 import { SyncReadout, TopBar } from './TopBar';
 import { useJson } from './useJson';
 import { useAccount } from './useAccount';
+import { Screen } from '@/components/Screen';
 
 /**
  * Opponent scout: their card in this event, their FIDE profile, and whether you've
@@ -35,7 +36,7 @@ export function PlayerScreen({ id, startNo, me }: { id: string; startNo: number;
     : [];
 
   return (
-    <main className="ef-page">
+    <Screen>
       <TopBar
         caption={`EVENT ${id} // PLAYER ${startNo}`}
         title="Scout"
@@ -94,6 +95,6 @@ export function PlayerScreen({ id, startNo, me }: { id: string; startNo: number;
           )}
         </>
       )}
-    </main>
+    </Screen>
   );
 }

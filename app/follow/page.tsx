@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/NavLink';
 import { useState } from 'react';
 import { Button, Chip, HazardBanner, Panel } from '@/components/ui';
 import { PasscodeGate } from '@/components/PasscodeGate';
@@ -8,6 +8,8 @@ import { TopBar } from '@/components/TopBar';
 import { useAccount } from '@/components/useAccount';
 import type { Follow } from '@/lib/client/types';
 import { tidyName } from '@/lib/client/format';
+import { toast } from '@/components/Motion';
+import { Screen } from '@/components/Screen';
 
 /** FOLLOW: yourself plus teammates, students or your kid — each gets their own alerts. */
 export default function FollowPage() {
@@ -26,11 +28,12 @@ export default function FollowPage() {
   async function remove(follow: Follow) {
     if (!window.confirm(`Stop following ${tidyName(follow.playerName)}?`)) return;
     await fetch(`/api/follows?id=${encodeURIComponent(follow.id)}`, { method: 'DELETE' });
+    toast(`Stopped following ${tidyName(follow.playerName)}`);
     feed.reload();
   }
 
   return (
-    <main className="ef-page">
+    <Screen>
       <TopBar caption="AIC // WATCHLIST" title="Follow" />
       {needsLogin && <PasscodeGate onUnlocked={unlock} />}
 
@@ -102,7 +105,7 @@ export default function FollowPage() {
           )}
         </>
       )}
-    </main>
+    </Screen>
   );
 }
 
@@ -132,7 +135,10 @@ function FollowForm({ initial, firstIsMe = false, onDone }: { initial: Follow | 
       }),
     }).catch(() => null);
     setBusy(false);
-    if (response?.ok) onDone();
+    if (response?.ok) {
+      toast(`${tidyName(playerName) || 'Player'} saved · checking chess-results`, 'ok');
+      onDone();
+    }
     else setError((await response?.json().catch(() => null))?.error ?? 'No connection.');
   }
 
@@ -141,33 +147,39 @@ function FollowForm({ initial, firstIsMe = false, onDone }: { initial: Follow | 
       <form className="ef-form" onSubmit={save}>
         <label className="ef-field">
           <span className="ef-field__label">Name, as on chess-results</span>
-          <input
-            className="ef-input"
-            placeholder="Suriyajan, Chayapol"
-            autoComplete="off"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-          />
+          <span className="ef-focus">
+            <input
+              className="ef-input"
+              placeholder="Suriyajan, Chayapol"
+              autoComplete="off"
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+            />
+          </span>
         </label>
         <label className="ef-field">
           <span className="ef-field__label">FIDE ID (optional, removes any doubt)</span>
-          <input
-            className="ef-input"
-            inputMode="numeric"
-            placeholder="6200456"
-            value={fideId}
-            onChange={(e) => setFideId(e.target.value)}
-          />
+          <span className="ef-focus">
+            <input
+              className="ef-input"
+              inputMode="numeric"
+              placeholder="6200456"
+              value={fideId}
+              onChange={(e) => setFideId(e.target.value)}
+            />
+          </span>
         </label>
         <label className="ef-field">
           <span className="ef-field__label">Tournament links (one per line, optional)</span>
-          <textarea
-            className="ef-input ef-textarea"
-            rows={3}
-            placeholder="https://chess-results.com/tnr1486488.aspx"
-            value={links}
-            onChange={(e) => setLinks(e.target.value)}
-          />
+          <span className="ef-focus">
+            <textarea
+              className="ef-input ef-textarea"
+              rows={3}
+              placeholder="https://chess-results.com/tnr1486488.aspx"
+              value={links}
+              onChange={(e) => setLinks(e.target.value)}
+            />
+          </span>
         </label>
         <label className="ef-check">
           <input type="checkbox" checked={isMe} onChange={(e) => setIsMe(e.target.checked)} />

@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/NavLink';
 import { useEffect, useMemo, useState } from 'react';
 import type { Overview } from '@/lib/client/types';
 import { forecast, trackRecord } from '@/lib/predict/forecast.js';

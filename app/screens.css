@@ -123,7 +123,6 @@ a { color: inherit; }
   padding: 16px 16px 12px 20px;
   background: var(--surface);
   clip-path: var(--ef-chamfer-clip);
-  box-shadow: inset 4px 0 0 var(--accent);
 }
 .ef-hero__watermark {
   position: absolute;
@@ -137,6 +136,7 @@ a { color: inherit; }
   user-select: none;
 }
 .ef-hero__head, .ef-hero__grid, .ef-hero__opp, .ef-hero__foot, .ef-hero__event { position: relative; }
+.ef-hero__status--urgent { color: var(--alert); }
 .ef-hero__head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .ef-hero__kicker {
   margin: 0;
@@ -208,6 +208,7 @@ a { color: inherit; }
   flex-wrap: wrap;
 }
 .ef-hero__status {
+  display: block;
   margin: 0;
   font: 500 12px var(--font-mono-stack);
   letter-spacing: 0.1em;
@@ -272,10 +273,10 @@ a { color: inherit; }
   color: var(--text);
   font: 400 16px var(--font-body-stack); /* 16px stops iOS zooming in */
 }
+/* Focus is shown by corner brackets closing in on the field (.ef-focus, motion.css G). */
 .ef-input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: inset 3px 0 0 var(--accent);
 }
 .ef-textarea { font-family: var(--font-mono-stack); font-size: 14px; resize: vertical; }
 .ef-search { margin: 0 0 8px; }
@@ -328,7 +329,7 @@ a { color: inherit; }
   border-top: 1px solid var(--line);
 }
 .ef-pair:last-child { border-bottom: 1px solid var(--line); }
-.ef-pair--mine { background: var(--surface); box-shadow: inset 4px 0 0 var(--accent); }
+.ef-pair--mine { background: var(--surface); }
 .ef-pair__bd {
   align-self: center;
   padding-left: 10px;

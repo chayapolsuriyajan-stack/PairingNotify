@@ -2,7 +2,6 @@
 
 :root {
   --ef-chamfer-clip: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
-  --ef-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .ef-page {
@@ -28,13 +27,13 @@
   text-transform: uppercase;
   text-decoration: none;
   cursor: pointer;
-  transition: background 120ms var(--ef-ease), color 120ms var(--ef-ease);
 }
 .ef-btn__label, .ef-btn__arrow { position: relative; }
+/* The CONFIRMED overlay covers the whole button, not just the label. */
+.ef-btn--confirmed .ef-btn__label { position: static; }
 .ef-btn__arrow { font-size: 11px; }
 
 .ef-btn--primary { background: var(--accent); color: var(--on-accent); }
-.ef-btn--primary:active { background: var(--on-accent); color: var(--accent); }
 
 .ef-btn--secondary { background: var(--text); color: var(--text); }
 .ef-btn--secondary::before {
@@ -43,7 +42,6 @@
   inset: 1px;
   background: var(--bg);
   clip-path: var(--ef-chamfer-clip);
-  transition: background 120ms var(--ef-ease);
 }
 .ef-btn--secondary:active::before { background: var(--surface-2); }
 
@@ -97,7 +95,6 @@
   background: var(--surface);
   clip-path: var(--ef-chamfer-clip);
 }
-.ef-panel--active { box-shadow: inset 4px 0 0 var(--accent); }
 .ef-panel__head {
   display: flex;
   align-items: flex-start;
@@ -212,9 +209,6 @@
 .ef-tab--active { color: var(--text); }
 .ef-tab:focus-visible { outline: 2px solid var(--info); outline-offset: -4px; }
 
-/* Data-update flicker: applied by the caller only when something actually changed. */
-@keyframes ef-flicker { 0%, 100% { opacity: 1; } 30% { opacity: 0.35; } 60% { opacity: 1; } }
-.ef-flicker { animation: ef-flicker 180ms steps(3) 1; }
 
 /* Light theme: the darker info/alert/ok fills need light text. */
 @media (prefers-color-scheme: light) {

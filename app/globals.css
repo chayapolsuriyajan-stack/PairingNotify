@@ -17,6 +17,15 @@
   --radius: 0;
   --chamfer: 10px;
   --tap: 44px;
+  /* Motion tokens (design.md §6.2) */
+  --t-instant: 80ms;
+  --t-fast: 160ms;
+  --t-base: 240ms;
+  --t-slow: 420ms;
+  --t-stagger: 40ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.7, 0, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   --font-display-stack: var(--font-display), 'Barlow Condensed', sans-serif;
   --font-body-stack: var(--font-body), system-ui, sans-serif;
   --font-mono-stack: var(--font-mono), ui-monospace, monospace;
@@ -51,6 +60,8 @@ body {
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
+/* design.md §6.5: no wipes, cascades, scrambles or loops; state changes are instant. */
 @media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }

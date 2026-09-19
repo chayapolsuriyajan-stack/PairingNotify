@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/NavLink';
 import { useState } from 'react';
 import type { Overview } from '@/lib/client/types';
 import { nameKey, syncLabel, tidyName } from '@/lib/client/format';
@@ -10,6 +10,7 @@ import { SyncReadout, TopBar } from './TopBar';
 import { useJson } from './useJson';
 import { useAccount } from './useAccount';
 import { Loading } from './Motion';
+import { Screen } from '@/components/Screen';
 
 /** Full next-round forecast for one player (plan §3a). */
 export function NextScreen({ id, p }: { id: string; p: number | null }) {
@@ -23,7 +24,7 @@ export function NextScreen({ id, p }: { id: string; p: number | null }) {
   const player = overview.data?.players.find((x) => x.startNo === me);
 
   return (
-    <main className="ef-page">
+    <Screen>
       <TopBar
         caption={`EVENT ${id} // FORECAST`}
         title="Next"
@@ -64,7 +65,7 @@ export function NextScreen({ id, p }: { id: string; p: number | null }) {
           <ForecastCard overview={overview.data} me={me} />
         </>
       )}
-    </main>
+    </Screen>
   );
 }
 
@@ -75,14 +76,16 @@ function PlayerPicker({ overview, onPick }: { overview: Overview; onPick: (start
   return (
     <>
       <p className="ef-help">Who should the forecast be for?</p>
-      <input
-        className="ef-input ef-search"
-        type="search"
-        placeholder="Type a player's name"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        aria-label="Player name"
-      />
+      <span className="ef-focus">
+        <input
+          className="ef-input ef-search"
+          type="search"
+          placeholder="Type a player's name"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          aria-label="Player name"
+        />
+      </span>
       <ul className="ef-rows">
         {shown.map((x) => (
           <li key={x.startNo} className="ef-row">

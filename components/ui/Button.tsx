@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/NavLink';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 type Common = {

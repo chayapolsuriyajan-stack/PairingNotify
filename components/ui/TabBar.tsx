@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/NavLink';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
@@ -21,7 +21,7 @@ export function TabBar({ items }: { items: TabItem[] }) {
   const index = items.findIndex((item) => isActive(item.href));
 
   return (
-    <nav className="ef-tabs" aria-label="Main">
+    <nav className="ef-tabs" aria-label="Main" style={{ viewTransitionName: 'tab-bar' }}>
       {index >= 0 && (
         <span
           className="ef-tabs__ink"

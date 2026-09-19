@@ -6,6 +6,10 @@ import { PasscodeGate } from '@/components/PasscodeGate';
 import { TopBar } from '@/components/TopBar';
 import { useAccount } from '@/components/useAccount';
 import { currentSubscription, isIos, isStandalone, pushSupport, subscribe, unsubscribe } from '@/components/push';
+import { Screen } from '@/components/Screen';
+import { toast } from '@/components/Motion';
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 type PushState = 'loading' | 'on' | 'off' | 'needs-install' | 'unsupported' | 'blocked';
 
@@ -16,6 +20,7 @@ export default function SettingsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [ios, setIos] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
 
   async function refreshPush() {
     const support = pushSupport();
@@ -37,6 +42,7 @@ export default function SettingsPage() {
       if (result) setMessage(result);
     } catch (error) {
       setMessage((error as Error).message);
+      toast((error as Error).message, 'alert');
     }
     setBusy(false);
     refreshPush();
@@ -45,7 +51,7 @@ export default function SettingsPage() {
   const vapid = config.data?.vapidPublicKey;
 
   return (
-    <main className="ef-page">
+    <Screen>
       <TopBar caption="AIC // CONFIGURATION" title="Settings" />
       {needsLogin && <PasscodeGate onUnlocked={unlock} />}
 
@@ -79,8 +85,27 @@ export default function SettingsPage() {
             {push === 'off' && vapid && (
               <>
                 <p className="ef-help">Get a lock-screen alert the moment a new pairing is published.</p>
-                <Button arrow disabled={busy} onClick={() => run(() => subscribe(vapid))}>
+                <Button
+                  arrow
+                  disabled={busy}
+                  className={confirmed ? 'ef-btn--confirmed' : undefined}
+                  onClick={() =>
+                    run(async () => {
+                      await subscribe(vapid);
+                      // §6.6: the fill wipes to CONFIRMED with a flicker, then settles.
+                      setConfirmed(true);
+                      toast('Alerts enabled · this device', 'ok');
+                      await sleep(900);
+                      setConfirmed(false);
+                    })
+                  }
+                >
                   Enable alerts
+                  {confirmed && (
+                    <span className="ef-btn__confirm" aria-hidden="true">
+                      Confirmed
+                    </span>
+                  )}
                 </Button>
               </>
             )}
@@ -93,13 +118,23 @@ export default function SettingsPage() {
                       const response = await fetch('/api/push/test', { method: 'POST' });
                       const body = await response.json().catch(() => ({}));
                       if (!response.ok) throw new Error(body.error ?? 'Test failed');
+                      toast(`Test alert sent · ${body.sent} device${body.sent === 1 ? '' : 's'}`, 'ok');
                       return `Sent to ${body.sent} device(s).`;
                     })
                   }
                 >
                   Send test alert
                 </Button>
-                <Button variant="secondary" disabled={busy} onClick={() => run(unsubscribe)}>
+                <Button
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={() =>
+                    run(async () => {
+                      await unsubscribe();
+                      toast('Alerts off · this device');
+                    })
+                  }
+                >
                   Turn off
                 </Button>
               </div>
@@ -157,6 +192,6 @@ export default function SettingsPage() {
           </Panel>
         </>
       )}
-    </main>
+    </Screen>
   );
 }

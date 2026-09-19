@@ -53,8 +53,8 @@ export function Segmented<T extends string | number>({
           className="ef-seg__ink"
           aria-hidden="true"
           style={{
-            width: ink.w,
-            transform: `translateX(${ink.x}px)`,
+            // transform only (§6.5): a 100px block, moved and scaled to the option
+            transform: `translateX(${ink.x}px) scaleX(${ink.w / 100})`,
             transition: ready.current ? undefined : 'none',
           }}
         />

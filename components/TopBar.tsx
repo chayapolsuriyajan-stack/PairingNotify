@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Changed } from './Motion';
+import { SyncDots } from './Motion';
 import { Ruler } from './Decor';
 
 /** Screen header: tiny mono caption, big uppercase title, a readout on the right. */
@@ -33,9 +33,10 @@ export function SyncReadout({
   return (
     <div className="ef-sync">
       {offline && <span className="ef-chip ef-chip--alert">Offline</span>}
-      <Changed value={label} className="ef-sync__label">
-        {label}
-      </Changed>
+      {/* refresh (§6.6): the button inverts and the readout steps "SYNC ···" */}
+      <span className="ef-sync__label" aria-live="polite">
+        {busy ? <SyncDots /> : label}
+      </span>
       {onRefresh && (
         <button
           type="button"

@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/NavLink';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { parseTournamentRef } from '@/lib/ref.js';
@@ -9,6 +9,7 @@ import { Button, Panel, SectionHeader } from './ui';
 import { PasscodeGate } from './PasscodeGate';
 import { SyncReadout, TopBar } from './TopBar';
 import { useAccount } from './useAccount';
+import { Screen } from '@/components/Screen';
 
 /**
  * EVENTS: every tournament the app watches for you and the players you follow, plus
@@ -47,7 +48,7 @@ export function EventsScreen() {
   }
 
   return (
-    <main className="ef-page">
+    <Screen>
       <TopBar
         caption="AIC // EVENT INDEX"
         title="Events"
@@ -71,16 +72,18 @@ export function EventsScreen() {
         >
           <label className="ef-field">
             <span className="ef-field__label">Chess-results link or number</span>
-            <input
-              className="ef-input"
-              inputMode="url"
-              placeholder="https://chess-results.com/tnr1486488.aspx"
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
-                setError(null);
-              }}
-            />
+            <span className="ef-focus">
+              <input
+                className="ef-input"
+                inputMode="url"
+                placeholder="https://chess-results.com/tnr1486488.aspx"
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  setError(null);
+                }}
+              />
+            </span>
           </label>
           {error && <p className="ef-error">{error}</p>}
           <Button type="submit" arrow>
@@ -121,6 +124,6 @@ export function EventsScreen() {
           any tournament above.
         </p>
       )}
-    </main>
+    </Screen>
   );
 }

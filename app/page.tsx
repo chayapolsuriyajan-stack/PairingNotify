@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import { useMemo } from 'react';
+import Link from '@/components/NavLink';
+import { useEffect, useMemo } from 'react';
 import { Button, HazardBanner, Panel, Row, RowList, SectionHeader } from '@/components/ui';
 import { NextGameHero } from '@/components/NextGameHero';
 import { ForecastCard } from '@/components/ForecastCard';
@@ -9,9 +9,10 @@ import { PasscodeGate } from '@/components/PasscodeGate';
 import { SyncReadout, TopBar } from '@/components/TopBar';
 import { markSeen, useAccount } from '@/components/useAccount';
 import { useJson } from '@/components/useJson';
-import { Loading } from '@/components/Motion';
+import { Loading, toast } from '@/components/Motion';
 import type { FeedFollow, Overview } from '@/lib/client/types';
 import { pad2, roundStart, syncLabel, tidyName } from '@/lib/client/format';
+import { Screen } from '@/components/Screen';
 
 /** NOW: your next game, the forecast for the round after, and everyone you follow. */
 export default function NowPage() {
@@ -28,12 +29,24 @@ export default function NowPage() {
     [myEvent?.id, myEvent?.startNo, myEvent?.latestPaired?.round], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
+  // The signature moment (design.md §6.6) also posts a system strip at the top.
+  useEffect(() => {
+    const game = myEvent?.latestPaired;
+    if (!isNew || !game) return;
+    toast(['Pairing confirmed', `RD ${game.round}`, game.board != null ? `BD ${game.board}` : null].filter(Boolean).join(' · '));
+  }, [isNew]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Losing the network mid-tournament is worth saying once, not silently.
+  useEffect(() => {
+    if (feed.offline) toast('Offline · showing saved copy', 'alert');
+  }, [feed.offline]);
+
   const generatedAt = feed.data?.feed.generatedAt ? Date.parse(feed.data.feed.generatedAt) : null;
   const degraded = follows.find((f) => f.discoveryError);
   const loading = config.loading || (feed.loading && !feed.data);
 
   return (
-    <main className="ef-page">
+    <Screen>
       <TopBar
         caption="AIC // PAIRING MONITOR"
         title="Now"
@@ -118,7 +131,7 @@ export default function NowPage() {
           automatically.
         </p>
       ) : null}
-    </main>
+    </Screen>
   );
 }
 

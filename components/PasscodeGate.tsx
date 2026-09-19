@@ -32,14 +32,16 @@ export function PasscodeGate({ onUnlocked }: { onUnlocked: () => void }) {
         </p>
         <label className="ef-field">
           <span className="ef-field__label">Passcode</span>
-          <input
-            className="ef-input"
-            type="password"
-            autoComplete="current-password"
-            value={passcode}
-            onChange={(e) => setPasscode(e.target.value)}
-            required
-          />
+          <span className="ef-focus">
+            <input
+              className="ef-input"
+              type="password"
+              autoComplete="current-password"
+              value={passcode}
+              onChange={(e) => setPasscode(e.target.value)}
+              required
+            />
+          </span>
         </label>
         {error && <p className="ef-error">{error}</p>}
         <Button type="submit" arrow disabled={busy}>

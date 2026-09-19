@@ -1,8 +1,9 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/NavLink';
 import type { CardRound, PlayerResponse } from '@/lib/client/types';
 import { pad2, points, resultLabel, tidyName } from '@/lib/client/format';
+import { Decode, ScanLine } from './Motion';
 
 /** Spec-sheet header ("LABEL" above "Value") plus one row per round. */
 export function PlayerCardView({
@@ -93,12 +94,13 @@ function RoundRow({
   const opponent = round.paired ? tidyName(round.opponent) : 'Bye / not paired';
   const href = round.opponentNo != null ? `/t/${tournamentId}/p/${round.opponentNo}${me ? `?me=${me}` : ''}` : null;
   const result = resultLabel(round.result);
-  const cls = ['ef-row', active && 'ef-row--active', round.colour && `ef-row--tick-${round.colour}`]
+  const cls = ['ef-row', 'ef-scan-host', active && 'ef-row--active', round.colour && `ef-row--tick-${round.colour}`]
     .filter(Boolean)
     .join(' ');
 
   return (
     <li className={cls}>
+      <ScanLine value={round.result} />
       <span className="ef-row__lead">R{pad2(round.round)}</span>
       <span className="ef-row__main">
         {href ? (
@@ -116,7 +118,7 @@ function RoundRow({
       </span>
       <span className="ef-row__trail">
         <span className={`ef-result ef-result--${result === '1' ? 'win' : result === '0' ? 'loss' : result ? 'draw' : 'none'}`}>
-          {result || '·'}
+          <Decode text={result || '·'} decodeOnChange />
         </span>
         <span className="ef-running">{points(running)}</span>
       </span>

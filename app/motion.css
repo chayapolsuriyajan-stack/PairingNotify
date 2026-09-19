@@ -1,142 +1,256 @@
 /*
- * Motion (design.md §6): fast and mechanical — 120–220ms, no springs.
- *  - things arrive with a horizontal wipe, staggered like a terminal booting;
- *  - indicators slide instead of jumping;
- *  - scanline / flicker only when data actually changed;
- *  - loading is a segmented bar, not a spinner.
- * Entrance animations use fill-mode `backwards`, so once they finish the element's own
- * styles (including chamfer clip-paths) apply again. Nothing can get stuck hidden.
- * `prefers-reduced-motion` turns all of it off (globals.css).
+ * Motion — design.md §6, pattern by pattern (A–L), mapped to the moments in §6.6.
+ *
+ * Rules kept here (§6.1, §6.5):
+ *  - mechanical: hard ease-out, no overshoot; nothing longer than ~500ms;
+ *  - build, don't fade: lines draw, frames wipe, content fills in;
+ *  - animate only transform / opacity / clip-path (the scan line and hazard march use
+ *    background-position, exactly as the spec's own snippets do);
+ *  - quiet at rest: the only idle loops are the ● LIVE dot and an active hazard march;
+ *  - entrances use fill-mode `backwards`, so an element's own styles (e.g. its chamfer
+ *    clip-path) apply again once it has built. Nothing can be left hidden;
+ *  - prefers-reduced-motion turns all of it off (globals.css).
  */
 
-:root {
-  --ef-wipe-from: polygon(0 0, 0 0, 0 100%, 0 100%);
-  --ef-wipe-to: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+/* ======================================================================
+   A. Line-draw then frame — panel entrance
+   ====================================================================== */
+@keyframes ef-draw { from { transform: scaleX(0); } }
+@keyframes ef-draw-y { from { transform: scaleY(0); } }
+@keyframes ef-wipe-down {
+  from { clip-path: polygon(0 0, 100% 0, 100% 0, 0 0); }
+  to { clip-path: var(--ef-chamfer-clip); }
+}
+@keyframes ef-wipe-down-square {
+  from { clip-path: inset(0 0 100% 0); }
+  to { clip-path: inset(0); }
+}
+@keyframes ef-fill-up { from { opacity: 0; transform: translateY(4px); } }
+/* The top rule is scaffolding: it draws left to right, the frame hangs from it, then it goes. */
+@keyframes ef-draw-rule {
+  0% { opacity: 1; transform: scaleX(0); }
+  66% { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(1); }
 }
 
-@keyframes ef-wipe-in {
-  from { clip-path: var(--ef-wipe-from); opacity: 0.4; }
-  to { clip-path: var(--ef-wipe-to); opacity: 1; }
+.ef-panel,
+.ef-hero {
+  animation: ef-wipe-down var(--t-base) var(--ease-out) backwards;
+  animation-delay: var(--ef-build-delay, 0ms);
 }
-@keyframes ef-wipe-in-chamfer {
-  from { clip-path: var(--ef-wipe-from); opacity: 0.4; }
-  to { clip-path: var(--ef-chamfer-clip); opacity: 1; }
+.ef-panel::before,
+.ef-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: var(--accent);
+  transform-origin: left;
+  opacity: 0;
+  z-index: 2;
+  pointer-events: none;
+  animation: ef-draw-rule var(--t-base) var(--ease-in-out) backwards;
+  animation-delay: var(--ef-build-delay, 0ms);
 }
-@keyframes ef-rise {
-  from { opacity: 0; transform: translateX(-8px); }
-  to { opacity: 1; transform: none; }
+/* then the content fades up by 4px */
+.ef-panel__body,
+.ef-hero__grid,
+.ef-hero__opp,
+.ef-hero__foot {
+  animation: ef-fill-up var(--t-fast) var(--ease-out) backwards;
+  animation-delay: calc(var(--ef-build-delay, 0ms) + var(--t-fast));
+}
+.ef-hero__opp { animation-delay: calc(var(--ef-build-delay, 0ms) + var(--t-fast) + var(--t-stagger)); }
+.ef-hero__foot { animation-delay: calc(var(--ef-build-delay, 0ms) + var(--t-fast) + 2 * var(--t-stagger)); }
+
+/* Degraded banner (§6.6): wipes down from the top; its stripes march (I). */
+.ef-hazard { animation: ef-wipe-down-square var(--t-base) var(--ease-out) backwards; }
+
+/* ======================================================================
+   B. Staggered cascade — screen build and lists
+   ====================================================================== */
+@keyframes ef-row {
+  from { opacity: 0; transform: translateX(-10px); clip-path: inset(0 100% 0 0); }
+  to { opacity: 1; transform: none; clip-path: inset(0); }
 }
 
-/* ---------- Screen boot: children of the page wipe in, one after another ---------- */
-.ef-page > * { animation: ef-wipe-in 220ms var(--ef-ease) backwards; }
-.ef-page > .ef-panel,
-.ef-page > .ef-hero { animation-name: ef-wipe-in-chamfer; }
-.ef-page > :nth-child(2) { animation-delay: 40ms; }
-.ef-page > :nth-child(3) { animation-delay: 80ms; }
-.ef-page > :nth-child(4) { animation-delay: 120ms; }
-.ef-page > :nth-child(5) { animation-delay: 160ms; }
-.ef-page > :nth-child(6) { animation-delay: 200ms; }
-.ef-page > :nth-child(n + 7) { animation-delay: 240ms; }
+/* App open (§6.6): the top bar's rule draws, then the sections cascade in. */
+.ef-top { animation: ef-fill-up var(--t-fast) var(--ease-out) backwards; }
+.ef-top__ruler { transform-origin: left; animation: ef-draw var(--t-base) var(--ease-in-out) backwards; }
 
-/* ---------- Lists: rows slide in, staggered (capped so long lists stay quick) ---------- */
+.ef-page > :not(.ef-top):not(.ef-panel):not(.ef-hero):not(.ef-hazard) {
+  animation: ef-row var(--t-base) var(--ease-out) backwards;
+  animation-delay: var(--ef-build-delay, 0ms);
+}
+.ef-page > :nth-child(2) { --ef-build-delay: calc(1 * var(--t-stagger) + 80ms); }
+.ef-page > :nth-child(3) { --ef-build-delay: calc(2 * var(--t-stagger) + 80ms); }
+.ef-page > :nth-child(4) { --ef-build-delay: calc(3 * var(--t-stagger) + 80ms); }
+.ef-page > :nth-child(5) { --ef-build-delay: calc(4 * var(--t-stagger) + 80ms); }
+.ef-page > :nth-child(6) { --ef-build-delay: calc(5 * var(--t-stagger) + 80ms); }
+.ef-page > :nth-child(n + 7) { --ef-build-delay: calc(6 * var(--t-stagger) + 80ms); }
+
+/* Rows: --i per item, stagger capped at 8 so long lists don't feel slow. */
 .ef-rows > li,
-.ef-pairs > li { animation: ef-rise 180ms var(--ef-ease) backwards; }
-.ef-rows > li:nth-child(2), .ef-pairs > li:nth-child(2) { animation-delay: 25ms; }
-.ef-rows > li:nth-child(3), .ef-pairs > li:nth-child(3) { animation-delay: 50ms; }
-.ef-rows > li:nth-child(4), .ef-pairs > li:nth-child(4) { animation-delay: 75ms; }
-.ef-rows > li:nth-child(5), .ef-pairs > li:nth-child(5) { animation-delay: 100ms; }
-.ef-rows > li:nth-child(6), .ef-pairs > li:nth-child(6) { animation-delay: 125ms; }
-.ef-rows > li:nth-child(7), .ef-pairs > li:nth-child(7) { animation-delay: 150ms; }
-.ef-rows > li:nth-child(8), .ef-pairs > li:nth-child(8) { animation-delay: 175ms; }
-.ef-rows > li:nth-child(n + 9), .ef-pairs > li:nth-child(n + 9) { animation-delay: 200ms; }
-
-/* ---------- Hero ---------- */
-/* Watermark round number slides in behind the card. */
-@keyframes ef-watermark-in {
-  from { opacity: 0; transform: translateX(40px); }
-  to { opacity: 0.05; transform: none; }
+.ef-pairs > li {
+  animation: ef-row var(--t-base) var(--ease-out) backwards;
+  animation-delay: calc(min(var(--i, 0), 8) * var(--t-stagger));
 }
-.ef-hero__watermark { animation: ef-watermark-in 420ms var(--ef-ease) 120ms backwards; }
+.ef-rows > li:nth-child(2), .ef-pairs > li:nth-child(2) { --i: 1; }
+.ef-rows > li:nth-child(3), .ef-pairs > li:nth-child(3) { --i: 2; }
+.ef-rows > li:nth-child(4), .ef-pairs > li:nth-child(4) { --i: 3; }
+.ef-rows > li:nth-child(5), .ef-pairs > li:nth-child(5) { --i: 4; }
+.ef-rows > li:nth-child(6), .ef-pairs > li:nth-child(6) { --i: 5; }
+.ef-rows > li:nth-child(7), .ef-pairs > li:nth-child(7) { --i: 6; }
+.ef-rows > li:nth-child(8), .ef-pairs > li:nth-child(8) { --i: 7; }
+.ef-rows > li:nth-child(n + 9), .ef-pairs > li:nth-child(n + 9) { --i: 8; }
 
-/* Board numeral and colour block drop into place. */
-@keyframes ef-stamp {
-  0% { opacity: 0; transform: translateY(-6px); }
-  60% { opacity: 1; }
-  100% { opacity: 1; transform: none; }
-}
-.ef-hero__num { animation: ef-stamp 200ms var(--ef-ease) 140ms backwards; }
-.ef-hero__colour { animation: ef-wipe-in 200ms var(--ef-ease) 200ms backwards; }
-.ef-hero__opp { animation: ef-rise 200ms var(--ef-ease) 260ms backwards; }
-
-/* A new pairing: brief signal-yellow flash on the accent bar. */
-@keyframes ef-hero-alert {
-  0%, 100% { box-shadow: inset 4px 0 0 var(--accent); }
-  20%, 60% { box-shadow: inset 12px 0 0 var(--accent); }
-}
-.ef-page > .ef-hero--new {
-  animation: ef-wipe-in-chamfer 220ms var(--ef-ease) backwards, ef-hero-alert 600ms steps(4) 260ms 1;
+/* Hero watermark numeral slides in behind the card. */
+@keyframes ef-watermark-in { from { opacity: 0; transform: translateX(40px); } }
+.ef-hero__watermark {
+  animation: ef-watermark-in var(--t-slow) var(--ease-out) backwards;
+  animation-delay: calc(var(--ef-build-delay, 0ms) + var(--t-fast));
 }
 
-/* Scanline sweep: runs once whenever the data under it changes. */
-.ef-scan { position: relative; }
+/* ======================================================================
+   E. Scan line — a band sweeps once across a panel/row whose data just changed
+   ====================================================================== */
+.ef-scan-host { position: relative; }
 .ef-scan__line {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: -36px;
-  height: 36px;
+  inset: 0;
   pointer-events: none;
-  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--accent) 22%, transparent), transparent);
-  animation: ef-scan 520ms linear 1 both;
   z-index: 3;
+  background: linear-gradient(90deg, transparent, rgb(255 229 0 / 0.18) 40%, transparent 42%);
+  background-size: 250% 100%;
+  animation: ef-scan var(--t-slow) var(--ease-in-out) 1 both;
 }
-@keyframes ef-scan {
-  from { top: -36px; opacity: 1; }
-  to { top: 100%; opacity: 0.2; }
-}
+@keyframes ef-scan { from { background-position: 100% 0; } to { background-position: -50% 0; } }
 
-/* Under 10 minutes to the round: the status line blinks like a warning lamp. */
-@keyframes ef-lamp { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.35; } }
-.ef-hero__status--urgent { color: var(--alert); animation: ef-lamp 1s steps(1) infinite; }
+/* ======================================================================
+   F. Flicker-on — a small element blinks 2–3 times over ~160ms and settles
+   ====================================================================== */
+@keyframes ef-flicker-on { 0%, 20%, 40% { opacity: 0.2; } 10%, 30%, 100% { opacity: 1; } }
+.ef-flicker { animation: ef-flicker-on var(--t-fast) steps(1) both; }
 
-/* ---------- Sliding indicators ---------- */
-.ef-tabs__ink {
+/* ======================================================================
+   G. Corner-bracket focus, and the selection bar that grows
+   ====================================================================== */
+.ef-focus { position: relative; display: block; }
+.ef-focus::after {
+  content: '';
   position: absolute;
-  top: -1px;
+  inset: -4px;
+  pointer-events: none;
+  opacity: 0;
+  --b: var(--accent);
+  background:
+    linear-gradient(var(--b), var(--b)) top left / 12px 2px no-repeat,
+    linear-gradient(var(--b), var(--b)) top left / 2px 12px no-repeat,
+    linear-gradient(var(--b), var(--b)) top right / 12px 2px no-repeat,
+    linear-gradient(var(--b), var(--b)) top right / 2px 12px no-repeat,
+    linear-gradient(var(--b), var(--b)) bottom left / 12px 2px no-repeat,
+    linear-gradient(var(--b), var(--b)) bottom left / 2px 12px no-repeat,
+    linear-gradient(var(--b), var(--b)) bottom right / 12px 2px no-repeat,
+    linear-gradient(var(--b), var(--b)) bottom right / 2px 12px no-repeat;
+  /* start ~4px outside and tighten onto the field */
+  transform: scale(1.04);
+  transition: opacity var(--t-instant) linear, transform var(--t-fast) var(--ease-out);
+}
+.ef-focus:focus-within::after { opacity: 1; transform: none; }
+@media (hover: hover) {
+  .ef-focus:hover::after { opacity: 0.5; transform: none; }
+}
+
+/* Selection: a yellow left bar grows from 0 to full height. */
+.ef-hero__bar,
+.ef-pair--mine::before,
+.ef-panel--active::after {
+  position: absolute;
   left: 0;
-  height: 3px;
-  background: var(--accent);
-  transition: transform 220ms var(--ef-ease), width 220ms var(--ef-ease);
-}
-.ef-seg { position: relative; }
-.ef-seg__ink {
-  position: absolute;
   top: 0;
   bottom: 0;
-  left: 0;
+  width: 4px;
   background: var(--accent);
-  transition: transform 180ms var(--ef-ease), width 180ms var(--ef-ease);
-  z-index: 0;
+  z-index: 2;
+  transform-origin: top;
+  animation: ef-draw-y var(--t-base) var(--ease-out) backwards;
+  animation-delay: calc(var(--ef-build-delay, 0ms) + var(--t-fast));
 }
-.ef-seg__item { z-index: 1; transition: color 120ms var(--ef-ease); }
-.ef-seg--inked .ef-seg__item--on { background: transparent; }
-
-/* ---------- Data changes ---------- */
-@keyframes ef-flash {
-  0% { background: color-mix(in srgb, var(--accent) 35%, transparent); }
-  100% { background: transparent; }
+.ef-pair--mine::before,
+.ef-panel--active::after { content: ''; }
+.ef-row--active::before {
+  transform-origin: top;
+  animation: ef-draw-y var(--t-base) var(--ease-out) backwards;
+  animation-delay: calc(min(var(--i, 0), 8) * var(--t-stagger) + var(--t-fast));
 }
-.ef-changed { animation: ef-flicker 180ms steps(3) 1, ef-flash 700ms var(--ef-ease) 1; }
 
-/* Forecast bar: segments light up left to right. */
-@keyframes ef-seg-on { from { background: var(--line); } to { background: var(--accent); } }
-.ef-bar__seg--on { animation: ef-seg-on 60ms steps(1) backwards; animation-delay: calc(var(--i) * 35ms + 120ms); }
+/* ======================================================================
+   The signature moment (§6.6) — a new pairing:
+   bar grows (G) → card wipes (A) → board + opponent decode (C) → one flicker (F).
+   About 400ms.
+   ====================================================================== */
+.ef-page > .ef-hero--new { --ef-build-delay: var(--t-instant); }
+.ef-hero--new .ef-hero__bar { animation-delay: 0ms; }
+.ef-hero--new .ef-hero__grid,
+.ef-hero--new .ef-hero__opp {
+  animation:
+    ef-fill-up var(--t-fast) var(--ease-out) backwards,
+    ef-flicker-on var(--t-fast) steps(1) var(--t-slow) 1 backwards;
+}
 
-/* LIVE chip: slow lamp. */
-@keyframes ef-live { 0%, 70% { opacity: 1; } 71%, 100% { opacity: 0.45; } }
-.ef-chip--pulse { animation: ef-live 1.6s steps(1) infinite; }
+/* ======================================================================
+   H. Button press — invert within --t-instant, or nudge 1px down-right
+   ====================================================================== */
+.ef-btn--primary:active { background: var(--on-accent); color: var(--accent); }
+.ef-btn--secondary:active { transform: translate(1px, 1px); }
+.ef-iconbtn:active,
+.ef-iconbtn--busy { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+@media (hover: hover) {
+  /* desktop only: a yellow sheen wipes across the label */
+  .ef-btn:hover .ef-btn__label::after {
+    content: '';
+    position: absolute;
+    inset: 0 -6px;
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.45), transparent);
+    animation: ef-sheen var(--t-slow) var(--ease-in-out) 1 both;
+    pointer-events: none;
+  }
+  .ef-btn--secondary:hover .ef-btn__label::after {
+    background: linear-gradient(90deg, transparent, rgb(255 229 0 / 0.35), transparent);
+  }
+}
+@keyframes ef-sheen { from { transform: translateX(-100%); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+.ef-btn__arrow { transition: transform var(--t-instant) linear; }
+.ef-btn:active .ef-btn__arrow { transform: translateX(3px); }
 
-/* ---------- Loading: segmented bar with a hazard-stripe crawl ---------- */
+/* "Enable alerts" succeeded (§6.6): the fill wipes to CONFIRMED, one flicker, settles. */
+.ef-btn__confirm {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--on-accent);
+  color: var(--accent);
+  animation:
+    ef-confirm-wipe var(--t-base) var(--ease-out) backwards,
+    ef-flicker-on var(--t-fast) steps(1) var(--t-base) 1 backwards;
+}
+@keyframes ef-confirm-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+
+/* ======================================================================
+   I. Hazard-stripe march — idle loop allowed only while a warning is active
+   ====================================================================== */
+.ef-hazard__stripe {
+  background: repeating-linear-gradient(-45deg, var(--accent) 0 8px, var(--on-accent) 8px 16px);
+  background-size: 22.6px 100%;
+  animation: ef-march 1.5s linear infinite;
+}
+@keyframes ef-march { to { background-position: 22.6px 0; } }
+
+/* ======================================================================
+   J. Segmented loading — blocks light in sequence; blinking _ cursor
+   ====================================================================== */
 .ef-loading { display: grid; gap: 6px; margin: 16px 0; }
 .ef-loading__label {
   font: 400 11px var(--font-mono-stack);
@@ -144,35 +258,145 @@
   text-transform: uppercase;
   color: var(--muted);
 }
+.ef-loading__label::after { content: '_'; margin-left: 2px; animation: ef-blink 1s linear infinite; }
 .ef-loading__bar { display: flex; gap: 3px; }
 .ef-loading__seg {
   flex: 1;
   height: 6px;
-  background: var(--line);
-  animation: ef-load 1s steps(1) infinite;
+  background: var(--accent);
+  opacity: 0.15;
+  animation: ef-load 960ms steps(1) infinite;
   animation-delay: calc(var(--i) * 80ms);
 }
-@keyframes ef-load { 0%, 30% { background: var(--accent); } 31%, 100% { background: var(--line); } }
-.ef-loading__stripe {
-  height: 4px;
-  background: repeating-linear-gradient(-45deg, var(--accent) 0 6px, var(--on-accent) 6px 12px);
-  animation: ef-crawl 600ms linear infinite;
-  opacity: 0.6;
+@keyframes ef-load { 0%, 30% { opacity: 1; } 31%, 100% { opacity: 0.15; } }
+
+/* "SYNC ···" readout while refreshing: the dots step in one at a time. */
+.ef-dots { display: inline-block; clip-path: inset(0 100% 0 0); animation: ef-dots 900ms steps(3, jump-start) infinite; }
+@keyframes ef-dots { to { clip-path: inset(0); } }
+
+/* Forecast probability bars: segments light up left to right (clip, not colour). */
+.ef-bar__seg--on {
+  animation: ef-seg-on var(--t-instant) steps(1) backwards;
+  animation-delay: calc(var(--i) * 35ms + var(--t-fast));
 }
-/* One stripe period horizontally: 12px * sqrt(2), so the loop is seamless. */
-@keyframes ef-crawl { from { background-position: 0 0; } to { background-position: 16.97px 0; } }
+@keyframes ef-seg-on { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
 
-/* ---------- Controls ---------- */
-.ef-iconbtn { transition: transform 120ms var(--ef-ease); }
-.ef-iconbtn--busy { animation: ef-spin 700ms steps(8) infinite; }
-@keyframes ef-spin { to { transform: rotate(360deg); } }
-.ef-btn__arrow { transition: transform 120ms var(--ef-ease); }
-.ef-btn:hover .ef-btn__arrow,
-.ef-btn:active .ef-btn__arrow { transform: translateX(4px); }
-.ef-btn:active { transform: translateY(1px); }
-.ef-link { transition: letter-spacing 160ms var(--ef-ease), opacity 120ms; }
-.ef-link:active { letter-spacing: 0.2em; opacity: 0.7; }
+/* ======================================================================
+   K. Toast strip — bar first, strip wipes out from it, text decodes, holds,
+      then collapses back into the bar and vanishes. Enter --t-base, exit --t-fast.
+   ====================================================================== */
+.ef-toasts {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  top: calc(env(safe-area-inset-top) + 12px);
+  z-index: 50;
+  display: grid;
+  gap: 8px;
+  max-width: 536px;
+  margin: 0 auto;
+  pointer-events: none;
+}
+.ef-toast {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 11px 12px 11px 16px;
+  background: var(--surface-2);
+  color: var(--text);
+  box-shadow: 4px 4px 0 rgb(0 0 0 / 0.35);
+  pointer-events: auto;
+  animation: ef-toast-in var(--t-base) var(--ease-out) var(--t-instant) backwards;
+}
+.ef-toast__bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--accent);
+  transform-origin: top;
+  animation: ef-draw-y var(--t-instant) var(--ease-out) backwards;
+}
+.ef-toast--alert .ef-toast__bar { background: var(--alert); }
+.ef-toast--ok .ef-toast__bar { background: var(--ok); }
+.ef-toast__time { flex: none; font: 400 11px var(--font-mono-stack); letter-spacing: 0.08em; color: var(--muted); }
+.ef-toast__msg { font: 500 13px var(--font-mono-stack); letter-spacing: 0.06em; text-transform: uppercase; }
+.ef-toast--leaving { animation: ef-toast-out var(--t-fast) var(--ease-in) forwards; }
+@keyframes ef-toast-in { from { clip-path: inset(0 calc(100% - 4px) 0 0); } to { clip-path: inset(0); } }
+@keyframes ef-toast-out { from { clip-path: inset(0); } 85% { opacity: 1; } to { clip-path: inset(0 calc(100% - 4px) 0 0); opacity: 0; } }
 
-/* Row press feedback. */
-.ef-rowlink:active, .ef-pair__side:active { opacity: 0.6; }
-.ef-row { transition: background 160ms var(--ef-ease); }
+/* ======================================================================
+   L. Screen and tab transitions (React <ViewTransition>, see components/Screen.tsx)
+   The outgoing view wipes out in the direction of travel, the incoming one wipes in
+   behind it, and a thin yellow rule leads the edge. Nothing crossfades.
+   ====================================================================== */
+::view-transition-old(root),
+::view-transition-new(root) { animation: none; }
+::view-transition-group(tab-bar),
+::view-transition-old(tab-bar),
+::view-transition-new(tab-bar) { animation: none; }
+
+::view-transition-old(.nav-forward) { animation: ef-vt-out-left calc(var(--t-base) * 0.7) var(--ease-in) both; }
+::view-transition-new(.nav-forward) { animation: ef-vt-in-from-right var(--t-base) var(--ease-out) both; }
+::view-transition-old(.nav-back) { animation: ef-vt-out-right calc(var(--t-base) * 0.7) var(--ease-in) both; }
+::view-transition-new(.nav-back) { animation: ef-vt-in-from-left var(--t-base) var(--ease-out) both; }
+@keyframes ef-vt-out-left { to { clip-path: inset(0 100% 0 0); } }
+@keyframes ef-vt-out-right { to { clip-path: inset(0 0 0 100%); } }
+@keyframes ef-vt-in-from-right { from { clip-path: inset(0 0 0 100%); } }
+@keyframes ef-vt-in-from-left { from { clip-path: inset(0 100% 0 0); } }
+
+/* The leading rule crossing the screen with the wipe. */
+.ef-sweep {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  background: var(--accent);
+  z-index: 60;
+  pointer-events: none;
+}
+.ef-sweep--forward { animation: ef-sweep-fwd var(--t-base) var(--ease-out) both; }
+.ef-sweep--back { animation: ef-sweep-back var(--t-base) var(--ease-out) both; }
+@keyframes ef-sweep-fwd {
+  from { opacity: 1; transform: translateX(100vw); }
+  85% { opacity: 1; }
+  to { opacity: 0; transform: translateX(0); }
+}
+@keyframes ef-sweep-back {
+  from { opacity: 1; transform: translateX(0); }
+  85% { opacity: 1; }
+  to { opacity: 0; transform: translateX(100vw); }
+}
+
+/* Tab underline and segmented ink slide (transform only, --ease-in-out). */
+.ef-tabs__ink {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  height: 3px;
+  background: var(--accent);
+  transition: transform var(--t-fast) var(--ease-in-out);
+}
+.ef-seg { position: relative; }
+.ef-seg__ink {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 100px;
+  background: var(--accent);
+  transform-origin: left;
+  transition: transform var(--t-fast) var(--ease-in-out);
+  z-index: 0;
+}
+.ef-seg__item { z-index: 1; }
+.ef-seg--inked .ef-seg__item--on { background: transparent; }
+
+/* ======================================================================
+   Idle (§6.4): at most one slow loop — the ● LIVE dot, 1s steps(2).
+   ====================================================================== */
+.ef-live-dot { display: inline-block; margin-right: 6px; animation: ef-blink 1s linear infinite; }
+@keyframes ef-blink { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0.15; } }

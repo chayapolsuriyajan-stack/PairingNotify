@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { Button, Chip, HazardBanner, Panel, Row, RowList, SectionHeader } from '@/components/ui';
+import { Screen } from '@/components/Screen';
 
 export const metadata = { title: 'Design kit', robots: { index: false } };
 
@@ -10,7 +11,7 @@ export default function DesignKit() {
   if (process.env.NODE_ENV === 'production') notFound();
 
   return (
-    <main className="ef-page">
+    <Screen>
       <SectionHeader index="00" caption="AIC // DESIGN KIT">Components</SectionHeader>
 
       <HazardBanner label="System degraded">Auto-discovery is down. Pinned tournaments still work.</HazardBanner>
@@ -51,6 +52,6 @@ export default function DesignKit() {
         <Chip tone="neutral" solid>White</Chip>
         <Chip tone="accent" solid>Black</Chip>
       </div>
-    </main>
+    </Screen>
   );
 }
