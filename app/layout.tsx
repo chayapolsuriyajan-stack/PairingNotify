@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Rajdhani, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+import './ui.css';
 
 const display = Rajdhani({
   subsets: ['latin'],

@@ -7,6 +7,7 @@
   --text: #ecebea;
   --muted: #8e9196;
   --accent: #ffe500;
+  --accent-text: #ffe500; /* accent used as text: yellow only reads on graphite */
   --on-accent: #141414;
   --info: #34d6e0;
   --alert: #ff5a36;
@@ -29,6 +30,10 @@
     --line: rgba(154, 156, 158, 0.6);
     --text: #141414;
     --muted: #6e7073;
+    --accent-text: #6f6400;
+    --info: #0a7f88;
+    --alert: #c8330f;
+    --ok: #3d7a0c;
   }
 }
 
