@@ -11,6 +11,7 @@ They are what the parser tests in `pages.test.js` run against:
 | `real-pairings-rd6.html` | art=2&rd=6 (includes a bye and not-paired rows) | same |
 | `real-crosstable-final.html` | art=5 starting-rank crosstable + tournament details | same |
 | `real-schedule.html` | art=14 | same |
+| `real-crosstable-rapid.html` | art=5, no details block shown | 1st CapyChess Festival Saturday [Rapid], tnr1482157 (65 players, 5 rounds) |
 | `live-crosstable-rd2.html` | art=5 captured mid round 2 of 6 (pending games) | Unisus The Street Open, tnr1486488 |
 | `live-pairings-rd2.html` | art=2&rd=2, no results yet | same |
 | `live-schedule.html` | art=14 | same |
