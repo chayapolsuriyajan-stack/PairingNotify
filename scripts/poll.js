@@ -17,12 +17,12 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { discoverTournaments } from './chessresults/search.js';
-import { fetchStartingRank, findPlayer } from './chessresults/tournament.js';
-import { fetchPlayerCard } from './chessresults/playercard.js';
-import { tournamentUrl } from './chessresults/client.js';
-import { diffPairings } from './diff.js';
-import { sendPairingNotifications } from './notify.js';
+import { discoverTournaments } from '../lib/chessresults/search.js';
+import { fetchStartingRank, findPlayer } from '../lib/chessresults/tournament.js';
+import { fetchPlayerCard } from '../lib/chessresults/playercard.js';
+import { tournamentUrl } from '../lib/chessresults/client.js';
+import { diffPairings } from '../lib/diff.js';
+import { sendPairingNotifications } from '../lib/notify.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const WATCHLIST = join(ROOT, 'watchlist.json');

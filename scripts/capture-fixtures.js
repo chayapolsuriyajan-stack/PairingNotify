@@ -14,11 +14,11 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { fetchHtml, tournamentUrl } from './chessresults/client.js';
-import { parseStartingRank, parseTournamentTitle, findPlayer } from './chessresults/tournament.js';
-import { parsePlayerCard } from './chessresults/playercard.js';
+import { fetchHtml, tournamentUrl } from '../lib/chessresults/client.js';
+import { parseStartingRank, parseTournamentTitle, findPlayer } from '../lib/chessresults/tournament.js';
+import { parsePlayerCard } from '../lib/chessresults/playercard.js';
 
-const OUT = join(dirname(fileURLToPath(import.meta.url)), '__fixtures__', 'captured');
+const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'lib', '__fixtures__', 'captured');
 
 function arg(flag, fallback = null) {
   const index = process.argv.indexOf(flag);
@@ -82,7 +82,7 @@ async function main() {
   await save('player-search.html', searchHtml);
 
   console.log(
-    '\nDone. Download the artifact, copy the HTML into scripts/__fixtures__/, and ' +
+    '\nDone. Download the artifact, copy the HTML into lib/__fixtures__/, and ' +
       'fix any PARSE FAIL above before trusting the poller.',
   );
 }

@@ -39,5 +39,5 @@ jobs:
         if: always()
         with:
           name: chess-results-fixtures
-          path: scripts/__fixtures__/captured/
+          path: lib/__fixtures__/captured/
           if-no-files-found: warn
