@@ -106,7 +106,7 @@ export default function NowPage() {
         </Panel>
       )}
 
-      {myEvent && <NextGameHero tournament={myEvent} start={start} isNew={isNew} />}
+      {myEvent && <NextGameHero tournament={myEvent} start={start} isNew={isNew} totalRounds={overview.data?.totalRounds ?? null} />}
 
       {myEvent && overview.data && overview.data.started && (
         <ForecastCard overview={overview.data} me={myEvent.startNo} compact />

@@ -16,11 +16,14 @@ export function NextGameHero({
   tournament,
   start,
   isNew,
+  totalRounds = null,
   label = 'Your next game',
 }: {
   tournament: FeedTournament;
   start: Date | null;
   isNew: boolean;
+  /** Rounds in the event, when known. Without it we can't say whether another round is coming. */
+  totalRounds?: number | null;
   label?: string;
 }) {
   const game = tournament.latestPaired;
@@ -41,6 +44,16 @@ export function NextGameHero({
   }
 
   const done = Boolean(game.result);
+  // The last round has no "next": say the event is complete instead of waiting for a
+  // round that will never exist. While the round count is unknown, claim nothing.
+  const finalRound = totalRounds != null && game.round >= totalRounds;
+  const doneStatus = !done
+    ? null
+    : finalRound
+      ? `FINAL RESULT ${resultLabel(game.result)} · EVENT COMPLETE`
+      : totalRounds != null
+        ? `RESULT ${resultLabel(game.result)} · WAITING FOR RD ${game.round + 1}`
+        : `RESULT ${resultLabel(game.result)}`;
   const minutesToStart = start ? (start.getTime() - now) / 60_000 : null;
   const urgent = !done && minutesToStart != null && minutesToStart > 0 && minutesToStart <= 10;
   const colour = game.colour;
@@ -60,7 +73,7 @@ export function NextGameHero({
       </div>
 
       <div className="ef-hero__head">
-        <p className="ef-hero__kicker">{done ? `Round ${game.round} · finished` : label}</p>
+        <p className="ef-hero__kicker">{done ? (finalRound ? 'Final round · finished' : `Round ${game.round} · finished`) : label}</p>
         <p className="ef-hero__meta">{meta}</p>
       </div>
       <Ruler className="ef-hero__ruler" />
@@ -94,11 +107,7 @@ export function NextGameHero({
       <div className="ef-hero__foot">
         {/* entering the last 10 minutes is an important state change: one flicker, no loop (§6.4) */}
         <Flicker value={urgent} className={`ef-hero__status${urgent ? ' ef-hero__status--urgent' : ''}`}>
-          {done
-            ? `RESULT ${resultLabel(game.result)} · WAITING FOR RD ${game.round + 1}`
-            : start
-              ? countdown(start, now)
-              : 'PAIRING PUBLISHED'}
+          {doneStatus ?? (start ? countdown(start, now) : 'PAIRING PUBLISHED')}
         </Flicker>
         {game.opponentNo != null && (
           <Link className="ef-link" href={`/t/${tournament.id}/p/${game.opponentNo}?me=${tournament.startNo}`}>
