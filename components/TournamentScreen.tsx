@@ -267,7 +267,7 @@ function StandingsView({ id, round, me }: { id: string; round: number | null; me
             ref={r.startNo === me ? meRef : undefined}
             className={`ef-row${r.startNo === me ? ' ef-row--active' : ''}`}
           >
-            <span className="ef-row__lead">{r.rank ?? ''}</span>
+            <span className={`ef-row__lead${r.rank != null && r.rank <= 3 ? ' ef-rank--podium' : ''}`}>{r.rank ?? ''}</span>
             <span className="ef-row__main">
               <Link href={r.startNo ? `/t/${id}/p/${r.startNo}${me ? `?me=${me}` : ''}` : '#'} className="ef-rowlink">
                 <strong>

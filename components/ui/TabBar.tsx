@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { ReactNode } from 'react';
 
 export interface TabItem {
   href: string;
   label: string;
+  icon?: ReactNode;
 }
 
 /**
@@ -34,7 +36,8 @@ export function TabBar({ items }: { items: TabItem[] }) {
           className={`ef-tab${i === index ? ' ef-tab--active' : ''}`}
           aria-current={i === index ? 'page' : undefined}
         >
-          {item.label}
+          {item.icon}
+          <span className="ef-tab__label">{item.label}</span>
         </Link>
       ))}
     </nav>

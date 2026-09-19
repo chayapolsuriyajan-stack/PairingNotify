@@ -1,0 +1,123 @@
+/*
+ * Visual polish: the design.md §4 motifs — dot grid, reticle brackets, tick rulers,
+ * section codes — plus the tab bar icons. Decoration stays behind or beside the facts
+ * (board, colour, opponent) and never competes with them.
+ */
+
+/* ---------- Background: faint dot grid under a soft top light ---------- */
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(120% 60% at 50% -10%, color-mix(in srgb, var(--text) 5%, transparent), transparent 60%),
+    radial-gradient(circle, color-mix(in srgb, var(--text) 9%, transparent) 1px, transparent 1.3px);
+  background-size: 100% 100%, 16px 16px;
+  background-attachment: fixed, fixed;
+  min-height: 100dvh;
+}
+
+/* ---------- Reticle brackets ---------- */
+.ef-brackets { position: absolute; inset: 6px; pointer-events: none; z-index: 1; }
+.ef-brackets > span { position: absolute; width: 12px; height: 12px; border-color: var(--accent); border-style: solid; border-width: 0; }
+.ef-brackets--muted > span { border-color: var(--muted); }
+.ef-brackets__tl { top: 0; left: 0; border-top-width: 2px !important; border-left-width: 2px !important; }
+.ef-brackets__tr { top: 0; right: 10px; border-top-width: 2px !important; border-right-width: 2px !important; }
+.ef-brackets__bl { bottom: 0; left: 0; border-bottom-width: 2px !important; border-left-width: 2px !important; }
+.ef-brackets__br { bottom: 0; right: 0; border-bottom-width: 2px !important; border-right-width: 2px !important; }
+/* The hero already has a yellow left bar: keep its left brackets quiet. */
+.ef-hero .ef-brackets__tl, .ef-hero .ef-brackets__bl { opacity: 0; }
+
+/* ---------- Tick ruler ---------- */
+.ef-ruler {
+  display: block;
+  height: 7px;
+  background:
+    repeating-linear-gradient(to right, var(--line) 0 1px, transparent 1px 8px) bottom / 100% 4px no-repeat,
+    repeating-linear-gradient(to right, var(--muted) 0 1px, transparent 1px 40px) bottom / 100% 7px no-repeat;
+  opacity: 0.8;
+}
+
+/* ---------- Top bar ---------- */
+.ef-top { flex-wrap: wrap; row-gap: 10px; }
+.ef-top__ruler { flex: 1 0 100%; }
+.ef-top__caption::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 8px;
+  background: var(--accent);
+  vertical-align: 1px;
+}
+
+/* ---------- Section headers: title followed by a hairline to the edge ---------- */
+.ef-section__title { display: flex; align-items: baseline; gap: 10px; }
+.ef-section__title::after { content: ''; flex: 1; border-top: 1px solid var(--line); transform: translateY(-5px); }
+
+/* Panel section codes get the same yellow marker as the screen caption. */
+.ef-panel__code::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 6px;
+  background: var(--accent);
+  vertical-align: 1px;
+}
+
+/* ---------- Hero ---------- */
+.ef-hero { padding-top: 18px; }
+.ef-hero__ruler { position: relative; margin-top: 8px; }
+.ef-hero__colourrow { display: flex; align-items: center; gap: 8px; }
+.ef-pawn { width: 20px; height: 26px; flex: none; }
+.ef-pawn--white { fill: var(--black-piece); }
+.ef-pawn--black { fill: #ecebea; }
+.ef-pawn--unknown { fill: var(--muted); }
+.ef-hero__serial {
+  position: relative;
+  margin: 6px 0 0;
+  text-align: right;
+  font: 400 9px var(--font-mono-stack);
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  opacity: 0.7;
+}
+.ef-hero__name { font-size: 26px; letter-spacing: -0.01em; }
+
+/* ---------- Tab bar with icons ---------- */
+.ef-tabs {
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.ef-tab {
+  flex-direction: column;
+  gap: 4px;
+  min-height: 62px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+}
+.ef-tab__icon { width: 22px; height: 22px; }
+.ef-tab--active .ef-tab__icon { color: var(--accent-text); }
+.ef-page { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
+
+/* ---------- Pairings: boxed board numbers ---------- */
+.ef-pair__bd {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  justify-self: center;
+  width: 30px;
+  height: 30px;
+  margin-left: 6px;
+  padding: 0;
+  border: 1px solid var(--line);
+  font-size: 15px;
+}
+.ef-pair--mine .ef-pair__bd { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+
+/* ---------- Standings: podium ranks ---------- */
+.ef-rank--podium { color: var(--accent-text); font-weight: 700; }
+
+/* ---------- Loading label gets a blinking cursor ---------- */
+.ef-loading__label::after { content: '_'; margin-left: 2px; animation: ef-lamp 1s steps(1) infinite; }

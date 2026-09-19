@@ -4,6 +4,7 @@ import './globals.css';
 import './ui.css';
 import './screens.css';
 import './motion.css';
+import './decor.css';
 import { AppChrome } from '@/components/AppChrome';
 
 const display = Rajdhani({
@@ -19,7 +20,6 @@ export const metadata: Metadata = {
   title: 'Pairings',
   description: 'New chess-results pairings on your lock screen.',
   appleWebApp: { capable: true, title: 'Pairings', statusBarStyle: 'black-translucent' },
-  icons: { apple: '/icons/icon-192.png' },
 };
 
 export const viewport: Viewport = {

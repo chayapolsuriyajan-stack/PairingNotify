@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Changed } from './Motion';
+import { Ruler } from './Decor';
 
 /** Screen header: tiny mono caption, big uppercase title, a readout on the right. */
 export function TopBar({ caption, title, right }: { caption: string; title: ReactNode; right?: ReactNode }) {
@@ -12,6 +13,7 @@ export function TopBar({ caption, title, right }: { caption: string; title: Reac
         <h1 className="ef-top__title">{title}</h1>
       </div>
       {right && <div className="ef-top__right">{right}</div>}
+      <Ruler className="ef-top__ruler" />
     </header>
   );
 }

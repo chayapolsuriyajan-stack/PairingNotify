@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#1B1C1E"/>
+  <polygon points="0,0 454,0 512,58 512,512 0,512" fill="#1B1C1E"/>
+  <rect x="67" y="67" width="90" height="90" fill="#E9E9E6"/>
+  <rect x="163" y="67" width="90" height="90" fill="#26282B"/>
+  <rect x="259" y="67" width="90" height="90" fill="#E9E9E6"/>
+  <rect x="355" y="67" width="90" height="90" fill="#26282B"/>
+  <rect x="67" y="163" width="90" height="90" fill="#26282B"/>
+  <rect x="163" y="163" width="90" height="90" fill="#E9E9E6"/>
+  <rect x="259" y="163" width="90" height="90" fill="#26282B"/>
+  <rect x="355" y="163" width="90" height="90" fill="#E9E9E6"/>
+  <rect x="67" y="259" width="90" height="90" fill="#E9E9E6"/>
+  <rect x="163" y="259" width="90" height="90" fill="#FFE500"/>
+  <rect x="259" y="259" width="90" height="90" fill="#E9E9E6"/>
+  <rect x="355" y="259" width="90" height="90" fill="#26282B"/>
+  <rect x="67" y="355" width="90" height="90" fill="#26282B"/>
+  <rect x="163" y="355" width="90" height="90" fill="#E9E9E6"/>
+  <rect x="259" y="355" width="90" height="90" fill="#26282B"/>
+  <rect x="355" y="355" width="90" height="90" fill="#E9E9E6"/>
+  <!-- corner brackets (reticle) -->
+  <g stroke="#FFE500" stroke-width="10" fill="none" stroke-linecap="square">
+    <path d="M42,70.8 V42 H70.8"/>
+    <path d="M470,441.2 V470 H441.2"/>
+  </g>
+  <!-- chamfered corner mark -->
+  <polygon points="454,0 512,0 512,58" fill="#FFE500"/>
+  <!-- the lit square carries a small board-number tick -->
+  <rect x="194.56" y="290.56" width="26.880000000000003" height="26.880000000000003" fill="#141414"/>
+</svg>

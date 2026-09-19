@@ -6,6 +6,7 @@ import type { FeedTournament } from '@/lib/client/types';
 import { countdown, hhmm, pad2, resultLabel, tidyName } from '@/lib/client/format';
 import { Scramble } from './Scramble';
 import { Changed, ScanLine } from './Motion';
+import { Brackets, Pawn, Ruler } from './Decor';
 
 /**
  * The first thing you see: where you sit, who you play, which colour. Board number,
@@ -51,6 +52,7 @@ export function NextGameHero({
   return (
     <section className={`ef-hero${isNew ? ' ef-hero--new' : ''}`} aria-label={label}>
       <ScanLine value={`${game.round}:${game.board}:${game.opponent}:${game.colour}:${game.result}`} />
+      <Brackets />
       <div className="ef-hero__watermark" aria-hidden="true">
         {pad2(game.round)}
       </div>
@@ -59,6 +61,7 @@ export function NextGameHero({
         <p className="ef-hero__kicker">{done ? `Round ${game.round} · finished` : label}</p>
         <p className="ef-hero__meta">{meta}</p>
       </div>
+      <Ruler className="ef-hero__ruler" />
 
       <div className="ef-hero__grid">
         <div className="ef-hero__board">
@@ -69,7 +72,10 @@ export function NextGameHero({
         </div>
         <div className={`ef-hero__colour ef-hero__colour--${colour ?? 'unknown'}`}>
           <span className="ef-hero__label">You play</span>
-          <span className="ef-hero__colourname">{colour ?? '?'}</span>
+          <span className="ef-hero__colourrow">
+            <Pawn colour={colour} />
+            <span className="ef-hero__colourname">{colour ?? '?'}</span>
+          </span>
         </div>
       </div>
 
@@ -100,6 +106,9 @@ export function NextGameHero({
 
       <p className="ef-hero__event">
         <Link href={`/t/${tournament.id}?p=${tournament.startNo}`}>{tournament.title}</Link>
+      </p>
+      <p className="ef-hero__serial" aria-hidden="true">
+        REF {tournament.id}-{String(tournament.startNo).padStart(3, '0')} · R{pad2(game.round)}/B{pad2(game.board ?? 0)}
       </p>
     </section>
   );
