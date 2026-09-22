@@ -259,6 +259,12 @@
   color: var(--muted);
 }
 .ef-loading__label::after { content: '_'; margin-left: 2px; animation: ef-blink 1s linear infinite; }
+.ef-loading__slow {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  animation: ef-fill-up var(--t-fast) var(--ease-out) backwards;
+}
 .ef-loading__bar { display: flex; gap: 3px; }
 .ef-loading__seg {
   flex: 1;

@@ -50,7 +50,7 @@ export function PlayerScreen({ id, startNo, me }: { id: string; startNo: number;
         }
       />
       {player.error && !player.data && <HazardBanner label="Can't load this player">{player.error}</HazardBanner>}
-      {!player.data && !player.error && <Loading label="Reading player card" />}
+      {!player.data && !player.error && <Loading label="Reading player card" slow />}
 
       {player.data && (
         <>

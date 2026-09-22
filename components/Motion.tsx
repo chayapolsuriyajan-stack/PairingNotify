@@ -167,7 +167,25 @@ export function Flicker({ value, children, className }: { value: unknown; childr
 // J. Segmented loading
 // ---------------------------------------------------------------------------
 
-export function Loading({ label = 'Loading' }: { label?: string }) {
+/** How long a fetch runs before we say the site itself, not the app, is the holdup. */
+const SLOW_AFTER_MS = 4000;
+
+export function Loading({
+  label = 'Loading',
+  slow = false,
+}: {
+  label?: string;
+  /** Set for a fetch that goes out to chess-results, where a long wait is the site being slow, not a bug. */
+  slow?: boolean;
+}) {
+  const [isSlow, setIsSlow] = useState(false);
+
+  useEffect(() => {
+    if (!slow) return;
+    const timer = setTimeout(() => setIsSlow(true), SLOW_AFTER_MS);
+    return () => clearTimeout(timer);
+  }, [slow]);
+
   return (
     <div className="ef-loading" role="status" aria-live="polite">
       <span className="ef-loading__label">{label}</span>
@@ -176,6 +194,9 @@ export function Loading({ label = 'Loading' }: { label?: string }) {
           <span key={i} className="ef-loading__seg" style={{ '--i': i } as React.CSSProperties} />
         ))}
       </span>
+      {isSlow && (
+        <p className="ef-loading__slow">chess-results is slow right now. This can take up to a minute.</p>
+      )}
     </div>
   );
 }

@@ -74,7 +74,7 @@ export function TournamentScreen({ id, p, tab: initialTab }: { id: string; p: nu
         }
       />
 
-      {overview.loading && !data && <Loading label={`Reading event ${id}`} />}
+      {overview.loading && !data && <Loading label={`Reading event ${id}`} slow />}
       {overview.error && !data && (
         <HazardBanner label="Can't load this event">
           {overview.error}. Check the tournament id, or try again in a minute.
@@ -192,7 +192,7 @@ function PairingsView({ id, round, me }: { id: string; round: number; me: number
     <>
       <Search value={query} onChange={setQuery} placeholder="Find a player or board" />
       {pairings.error && !pairings.data && <p className="ef-error">{pairings.error}</p>}
-      {pairings.loading && !pairings.data && <Loading label={`Reading round ${round} pairings`} />}
+      {pairings.loading && !pairings.data && <Loading label={`Reading round ${round} pairings`} slow />}
       {mine && !query && (
         <>
           <p className="ef-kicker">Your board</p>
@@ -270,7 +270,7 @@ function StandingsView({ id, round, me }: { id: string; round: number | null; me
       )}
       <Search value={query} onChange={setQuery} placeholder="Find a player or federation" />
       {standings.error && !standings.data && <p className="ef-error">{standings.error}</p>}
-      {standings.loading && !standings.data && <Loading label="Reading standings" />}
+      {standings.loading && !standings.data && <Loading label="Reading standings" slow />}
       <ul className="ef-rows">
         {shown.map((r) => (
           <li
@@ -301,7 +301,7 @@ function StandingsView({ id, round, me }: { id: string; round: number | null; me
 function CardView({ id, me }: { id: string; me: number }) {
   const player = useJson<PlayerResponse>(`/api/cr/${id}/player/${me}`, { refreshMs: 60_000 });
   if (player.error && !player.data) return <p className="ef-error">{player.error}</p>;
-  if (!player.data) return <Loading label="Reading your card" />;
+  if (!player.data) return <Loading label="Reading your card" slow />;
   return (
     <>
       <p className="ef-kicker">{tidyName(player.data.header.name)}</p>

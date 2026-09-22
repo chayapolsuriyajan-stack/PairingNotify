@@ -37,7 +37,7 @@ export function NextScreen({ id, p }: { id: string; p: number | null }) {
           />
         }
       />
-      {overview.loading && !overview.data && <Loading label={`Reading event ${id}`} />}
+      {overview.loading && !overview.data && <Loading label={`Reading event ${id}`} slow />}
       {overview.error && !overview.data && <HazardBanner label="Can't load this event">{overview.error}</HazardBanner>}
 
       {overview.data && (
