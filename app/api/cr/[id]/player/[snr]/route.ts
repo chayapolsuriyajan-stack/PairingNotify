@@ -3,6 +3,8 @@ import { isTournamentId } from '@/lib/ref.js';
 import { fetchPlayer } from '@/lib/chessresults/pages.js';
 
 /** One player's card in a tournament: /api/cr/1486488/player/12 */
+export const maxDuration = 30;
+
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string; snr: string }> }) {
   const { id, snr } = await params;
   const startNo = intParam(snr, 1, 99999);

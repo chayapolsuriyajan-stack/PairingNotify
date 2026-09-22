@@ -3,6 +3,8 @@ import { isTournamentId } from '@/lib/ref.js';
 import { fetchStandings } from '@/lib/chessresults/pages.js';
 
 /** Ranking after a round (latest when ?rd is omitted): /api/cr/1486488/standings?rd=1 */
+export const maxDuration = 30;
+
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const raw = new URL(request.url).searchParams.get('rd');

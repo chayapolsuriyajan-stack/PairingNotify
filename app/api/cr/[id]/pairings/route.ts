@@ -3,6 +3,8 @@ import { isTournamentId } from '@/lib/ref.js';
 import { fetchPairings } from '@/lib/chessresults/pages.js';
 
 /** Board pairings for one round: /api/cr/1486488/pairings?rd=2 */
+export const maxDuration = 30;
+
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const round = intParam(new URL(request.url).searchParams.get('rd'), 1, 99);
