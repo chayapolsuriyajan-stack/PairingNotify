@@ -436,3 +436,15 @@ a { color: inherit; }
 .ef-bar { display: flex; gap: 2px; margin-top: 2px; }
 .ef-bar__seg { width: 100%; max-width: 18px; height: 6px; background: var(--line); }
 .ef-bar__seg--on { background: var(--accent); }
+
+/* ---------- Player search result (Events tab) ---------- */
+.ef-result { margin: 16px 0 0; border-top: 1px solid var(--line); padding-top: 12px; }
+.ef-result__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+.ef-result .ef-rows { margin-bottom: 12px; }

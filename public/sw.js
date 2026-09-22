@@ -6,16 +6,19 @@
  *   back to the last copy seen.
  */
 
-const VERSION = 'pn-v2';
+const VERSION = 'pn-v3';
 const STATIC = `${VERSION}-static`;
 const DATA = `${VERSION}-data`;
 const PAGES = `${VERSION}-pages`;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches
-      .open(PAGES)
-      .then((cache) => cache.addAll(['/', '/manifest.webmanifest']))
+    Promise.all([
+      caches.open(PAGES).then((cache) => cache.addAll(['/', '/manifest.webmanifest'])),
+      // The lock-screen icon and badge must be there even when the push arrives with
+      // no network — a notification with a missing icon shows a blank placeholder.
+      caches.open(STATIC).then((cache) => cache.addAll(['/icons/icon-192.png', '/icons/badge-96.png'])),
+    ])
       .catch(() => {})
       .then(() => self.skipWaiting()),
   );
@@ -95,7 +98,11 @@ self.addEventListener('push', (event) => {
       tag: payload.tag || 'pairing',
       renotify: true,
       icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
+      // The badge is the tiny status-bar mark. Android throws away its colours and
+      // keeps only the alpha channel, so it must be a transparent monochrome shape —
+      // passing the app icon here (every pixel opaque) drew a blank white square.
+      // See scripts/make-badge.mjs.
+      badge: '/icons/badge-96.png',
       data: { url: payload.url || '/' },
     }),
   );

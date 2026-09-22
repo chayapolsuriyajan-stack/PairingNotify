@@ -329,46 +329,55 @@
 
 /* ======================================================================
    L. Screen and tab transitions (React <ViewTransition>, see components/Screen.tsx)
-   The outgoing view wipes out in the direction of travel, the incoming one wipes in
-   behind it, and a thin yellow rule leads the edge. Nothing crossfades.
+
+   The outgoing screen dissolves away a pixel at a time — each cell of a 14px grid
+   shrinks to nothing in hard steps — and the incoming screen builds itself back out of
+   the same grid, leaving the flat page colour in between. Mono, mechanical, and with
+   no direction: the old left/right wipe left the screen sitting still behind a moving
+   line and then jumping, which read as a stall (design.md §8 guardrail 1).
+
+   The mask is two crossed repeating gradients intersected, so each 14px cell shows a
+   --ef-px-w square; animating that one length in steps() shrinks or grows every cell
+   at once. @property is what makes a custom property animatable; without it (older
+   Safari/Firefox) the mask simply never applies and the screens swap instantly — no
+   motion, but nothing hidden either.
    ====================================================================== */
+@property --ef-px-w {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 14px;
+}
+
 ::view-transition-old(root),
 ::view-transition-new(root) { animation: none; }
+/* The tab bar is the one fixed point: it never dissolves, and stays tappable. */
 ::view-transition-group(tab-bar),
 ::view-transition-old(tab-bar),
 ::view-transition-new(tab-bar) { animation: none; }
+/* A tap during the dissolve reaches the page underneath, not the overlay. */
+::view-transition { pointer-events: none; }
 
-::view-transition-old(.nav-forward) { animation: ef-vt-out-left calc(var(--t-base) * 0.7) var(--ease-in) both; }
-::view-transition-new(.nav-forward) { animation: ef-vt-in-from-right var(--t-base) var(--ease-out) both; }
-::view-transition-old(.nav-back) { animation: ef-vt-out-right calc(var(--t-base) * 0.7) var(--ease-in) both; }
-::view-transition-new(.nav-back) { animation: ef-vt-in-from-left var(--t-base) var(--ease-out) both; }
-@keyframes ef-vt-out-left { to { clip-path: inset(0 100% 0 0); } }
-@keyframes ef-vt-out-right { to { clip-path: inset(0 0 0 100%); } }
-@keyframes ef-vt-in-from-right { from { clip-path: inset(0 0 0 100%); } }
-@keyframes ef-vt-in-from-left { from { clip-path: inset(0 100% 0 0); } }
+/* Both screens sit still: only the mask moves. */
+::view-transition-group(.px) { animation: none; }
+::view-transition-old(.px),
+::view-transition-new(.px) {
+  --ef-px-cell: 14px;
+  mask-image:
+    repeating-linear-gradient(90deg, #000 0 var(--ef-px-w), #0000 var(--ef-px-w) var(--ef-px-cell)),
+    repeating-linear-gradient(180deg, #000 0 var(--ef-px-w), #0000 var(--ef-px-w) var(--ef-px-cell));
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+::view-transition-old(.px) { animation: ef-px-out var(--t-fast) steps(7, end) both; }
+::view-transition-new(.px) { animation: ef-px-in var(--t-base) steps(7, end) var(--t-fast) both; }
 
-/* The leading rule crossing the screen with the wipe. */
-.ef-sweep {
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 2px;
-  background: var(--accent);
-  z-index: 60;
-  pointer-events: none;
+@keyframes ef-px-out {
+  from { --ef-px-w: var(--ef-px-cell); filter: none; }
+  to { --ef-px-w: 0px; filter: grayscale(1); }
 }
-.ef-sweep--forward { animation: ef-sweep-fwd var(--t-base) var(--ease-out) both; }
-.ef-sweep--back { animation: ef-sweep-back var(--t-base) var(--ease-out) both; }
-@keyframes ef-sweep-fwd {
-  from { opacity: 1; transform: translateX(100vw); }
-  85% { opacity: 1; }
-  to { opacity: 0; transform: translateX(0); }
-}
-@keyframes ef-sweep-back {
-  from { opacity: 1; transform: translateX(0); }
-  85% { opacity: 1; }
-  to { opacity: 0; transform: translateX(100vw); }
+@keyframes ef-px-in {
+  from { --ef-px-w: 0px; filter: grayscale(1); }
+  to { --ef-px-w: var(--ef-px-cell); filter: none; }
 }
 
 /* Tab underline and segmented ink slide (transform only, --ease-in-out). */

@@ -1,4 +1,7 @@
+'use client';
+
 import type { ReactNode } from 'react';
+import { haptic } from '@/lib/client/haptics';
 import { SyncDots } from './Motion';
 import { Ruler } from './Decor';
 
@@ -41,7 +44,10 @@ export function SyncReadout({
         <button
           type="button"
           className={`ef-iconbtn${busy ? ' ef-iconbtn--busy' : ''}`}
-          onClick={onRefresh}
+          onClick={() => {
+            haptic('tick');
+            onRefresh();
+          }}
           aria-label="Refresh"
           aria-busy={busy}
         >

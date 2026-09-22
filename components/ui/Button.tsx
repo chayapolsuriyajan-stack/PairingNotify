@@ -1,5 +1,8 @@
+'use client';
+
 import Link from '@/components/NavLink';
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { haptic } from '@/lib/client/haptics';
+import type { ButtonHTMLAttributes, MouseEvent, ReactNode } from 'react';
 
 type Common = {
   variant?: 'primary' | 'secondary';
@@ -14,7 +17,7 @@ type AsButton = Common & { href?: undefined } & ButtonHTMLAttributes<HTMLButtonE
 
 /** Chamfered block button. Primary is signal yellow; secondary is a 1px outline. */
 export function Button(props: AsLink | AsButton) {
-  const { variant = 'primary', arrow, children, className, href, ...rest } = props;
+  const { variant = 'primary', arrow, children, className, href, onClick, ...rest } = props;
   const cls = ['ef-btn', `ef-btn--${variant}`, className].filter(Boolean).join(' ');
   const content = (
     <>
@@ -23,8 +26,22 @@ export function Button(props: AsLink | AsButton) {
     </>
   );
 
+  // The press is confirmed in the hand as well as on screen (see lib/client/haptics).
+  const press = (event: MouseEvent<HTMLElement>) => {
+    haptic(variant === 'primary' ? 'select' : 'tick');
+    (onClick as ((event: MouseEvent<HTMLElement>) => void) | undefined)?.(event);
+  };
+
   if (href !== undefined) {
-    return <Link href={href} className={cls}>{content}</Link>;
+    return (
+      <Link href={href} className={cls} onClick={press}>
+        {content}
+      </Link>
+    );
   }
-  return <button type="button" className={cls} {...(rest as ButtonHTMLAttributes<HTMLButtonElement>)}>{content}</button>;
+  return (
+    <button type="button" className={cls} onClick={press} {...(rest as ButtonHTMLAttributes<HTMLButtonElement>)}>
+      {content}
+    </button>
+  );
 }

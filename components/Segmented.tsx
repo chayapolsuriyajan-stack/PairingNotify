@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { haptic } from '@/lib/client/haptics';
 
 /**
  * Segmented control (tabs within a screen, round picker, WIN/DRAW/LOSS). A yellow ink
@@ -66,7 +67,10 @@ export function Segmented<T extends string | number>({
           role="tab"
           aria-selected={option.value === value}
           className={`ef-seg__item${option.value === value ? ' ef-seg__item--on' : ''}`}
-          onClick={() => onChange(option.value)}
+          onClick={() => {
+            if (option.value !== value) haptic('tick');
+            onChange(option.value);
+          }}
         >
           {option.label}
         </button>

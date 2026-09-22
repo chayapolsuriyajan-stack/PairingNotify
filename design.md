@@ -157,6 +157,10 @@ Use no more than 2–3 motifs per screen. The look is disciplined, not busy.
   updates, used only when something actually changed.
 - **Text scramble**: numbers or codes cycle through characters before settling.
   Save it for important reveals like a new pairing.
+- **Screen changes**: one screen dissolves into the next a pixel at a time — a grid of
+  square cells shrinks away in hard `steps()` and the incoming screen grows back out of
+  it, mono, ~380ms. No sliding and no direction: a horizontal wipe leaves the screen
+  apparently frozen behind a moving line and then jumping.
 - Respect `prefers-reduced-motion`: fall back to instant state changes.
 
 ---

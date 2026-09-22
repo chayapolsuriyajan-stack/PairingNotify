@@ -2,6 +2,7 @@
 
 import Link from '@/components/NavLink';
 import { usePathname } from 'next/navigation';
+import { haptic } from '@/lib/client/haptics';
 import type { ReactNode } from 'react';
 
 export interface TabItem {
@@ -35,6 +36,7 @@ export function TabBar({ items }: { items: TabItem[] }) {
           href={item.href}
           className={`ef-tab${i === index ? ' ef-tab--active' : ''}`}
           aria-current={i === index ? 'page' : undefined}
+          onClick={() => i !== index && haptic('select')}
         >
           {item.icon}
           <span className="ef-tab__label">{item.label}</span>

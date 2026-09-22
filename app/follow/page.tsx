@@ -7,7 +7,7 @@ import { PasscodeGate } from '@/components/PasscodeGate';
 import { TopBar } from '@/components/TopBar';
 import { useAccount } from '@/components/useAccount';
 import type { Follow } from '@/lib/client/types';
-import { tidyName } from '@/lib/client/format';
+import { hhmm, tidyName } from '@/lib/client/format';
 import { toast } from '@/components/Motion';
 import { Screen } from '@/components/Screen';
 
@@ -17,6 +17,12 @@ export default function FollowPage() {
   const follows = feed.data?.follows ?? [];
   const [editing, setEditing] = useState<Follow | 'new' | null>(null);
 
+  /** "checked 09:41" — when the poller last ran this player's search. */
+  const lastSearch = (id: string) => {
+    const at = feed.data?.feed.follows.find((f) => f.id === id)?.discoveryAt;
+    return at ? `checked ${hhmm(new Date(at))}` : null;
+  };
+
   const status = (follow: Follow) => {
     const seen = feed.data?.feed.follows.find((f) => f.id === follow.id);
     if (!seen) return <Chip tone="info">Checking</Chip>;
@@ -24,6 +30,21 @@ export default function FollowPage() {
     if (seen.tournaments.length > 0) return <Chip tone="ok">Active</Chip>;
     return <Chip tone="alert">Not found</Chip>;
   };
+
+  const [finding, setFinding] = useState<string | null>(null);
+
+  /**
+   * The poller searches chess-results for new events once a day (and every half hour
+   * around a live one). This is the button for the moment you have just entered a
+   * tournament and don't want to wait for that.
+   */
+  async function findNow(follow: Follow) {
+    setFinding(follow.id);
+    const response = await fetch(`/api/discover?id=${encodeURIComponent(follow.id)}`, { method: 'POST' }).catch(() => null);
+    setFinding(null);
+    toast(response?.ok ? `Searched chess-results for ${tidyName(follow.playerName)}` : 'Could not reach chess-results', response?.ok ? 'ok' : 'alert');
+    feed.reload();
+  }
 
   async function remove(follow: Follow) {
     if (!window.confirm(`Stop following ${tidyName(follow.playerName)}?`)) return;
@@ -62,7 +83,11 @@ export default function FollowPage() {
                 active={follow.isMe}
               >
                 <p className="ef-help">
-                  {[follow.fideId ? `FIDE ${follow.fideId}` : null, follow.autoDiscover ? 'Auto-discovery on' : 'Pinned events only']
+                  {[
+                    follow.fideId ? `FIDE ${follow.fideId}` : 'No FIDE ID — matched by name',
+                    follow.autoDiscover ? 'New events found daily' : 'Pinned events only',
+                    lastSearch(follow.id),
+                  ]
                     .filter(Boolean)
                     .join(' · ')}
                 </p>
@@ -76,6 +101,11 @@ export default function FollowPage() {
                   ))}
                 </ul>
                 <div className="ef-actions">
+                  {follow.autoDiscover && (
+                    <Button disabled={finding === follow.id} onClick={() => findNow(follow)}>
+                      {finding === follow.id ? 'Searching' : 'Find events now'}
+                    </Button>
+                  )}
                   <Button variant="secondary" onClick={() => setEditing(follow)}>
                     Edit
                   </Button>
@@ -146,7 +176,7 @@ function FollowForm({ initial, firstIsMe = false, onDone }: { initial: Follow | 
     <Panel code={initial ? '03 / EDIT' : '03 / ADD'} title={initial ? 'Edit player' : 'Add a player'} active>
       <form className="ef-form" onSubmit={save}>
         <label className="ef-field">
-          <span className="ef-field__label">Name, as on chess-results</span>
+          <span className="ef-field__label">Name, as on chess-results (used if there is no FIDE ID)</span>
           <span className="ef-focus">
             <input
               className="ef-input"
@@ -158,7 +188,7 @@ function FollowForm({ initial, firstIsMe = false, onDone }: { initial: Follow | 
           </span>
         </label>
         <label className="ef-field">
-          <span className="ef-field__label">FIDE ID (optional, removes any doubt)</span>
+          <span className="ef-field__label">FIDE ID — the reliable one</span>
           <span className="ef-focus">
             <input
               className="ef-input"
@@ -191,8 +221,9 @@ function FollowForm({ initial, firstIsMe = false, onDone }: { initial: Follow | 
         </label>
         {autoDiscover && (
           <p className="ef-help">
-            Auto-discovery uses chess-results&apos; player search, which can break when the site changes. Adding the
-            tournament link above always works.
+            The search uses the FIDE ID when there is one, which is the only thing about a player that every arbiter
+            spells the same way. Without one it falls back to the name, exactly as typed on chess-results. New events
+            are picked up once a day, or every half hour around a live one.
           </p>
         )}
         {error && <HazardBanner label="Not saved">{error}</HazardBanner>}

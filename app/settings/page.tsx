@@ -7,7 +7,17 @@ import { TopBar } from '@/components/TopBar';
 import { useAccount } from '@/components/useAccount';
 import { currentSubscription, isIos, isStandalone, pushSupport, subscribe, unsubscribe } from '@/components/push';
 import { Screen } from '@/components/Screen';
+import { Segmented } from '@/components/Segmented';
 import { toast } from '@/components/Motion';
+import {
+  DEFAULT_HAPTICS,
+  getHaptics,
+  haptic,
+  hapticsSupported,
+  setHaptics,
+  type HapticIntensity,
+  type HapticSettings,
+} from '@/lib/client/haptics';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -150,7 +160,9 @@ export default function SettingsPage() {
             </Panel>
           )}
 
-          <Panel code="04 / ACCESS" title="Passcode">
+          <HapticsPanel />
+
+          <Panel code="05 / ACCESS" title="Passcode">
             {config.data.passcodeRequired ? (
               <>
                 <p className="ef-help">This device is unlocked. Sign out to lock your follows and alerts again.</p>
@@ -172,7 +184,7 @@ export default function SettingsPage() {
             )}
           </Panel>
 
-          <Panel code="05 / SYSTEM" title="Server" serial={`STORE ${config.data.storage.toUpperCase()}`}>
+          <Panel code="06 / SYSTEM" title="Server" serial={`STORE ${config.data.storage.toUpperCase()}`}>
             <dl className="ef-spec">
               <div className="ef-spec__item ef-spec__item--wide">
                 <dt>Storage</dt>
@@ -193,5 +205,72 @@ export default function SettingsPage() {
         </>
       )}
     </Screen>
+  );
+}
+
+const INTENSITIES: { value: HapticIntensity; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'strong', label: 'Strong' },
+];
+
+/**
+ * Haptics live on the device, not the account (lib/client/haptics.ts), so this panel
+ * reads and writes localStorage directly. Every change fires the haptic it just set,
+ * which is the only honest way to choose an intensity.
+ */
+function HapticsPanel() {
+  const [settings, setSettings] = useState<HapticSettings>(DEFAULT_HAPTICS);
+  const [supported, setSupported] = useState(true);
+
+  useEffect(() => {
+    setSettings(getHaptics());
+    setSupported(hapticsSupported());
+  }, []);
+
+  const update = (patch: Partial<HapticSettings>) => {
+    const next = setHaptics(patch);
+    setSettings(next);
+    if (next.enabled) haptic('select');
+  };
+
+  return (
+    <Panel
+      code="04 / FEEDBACK"
+      title="Haptics"
+      status={
+        <Chip tone={!supported ? 'neutral' : settings.enabled ? 'ok' : 'neutral'}>
+          {!supported ? 'Unavailable' : settings.enabled ? 'On' : 'Off'}
+        </Chip>
+      }
+    >
+      {!supported ? (
+        <p className="ef-help">
+          This browser has no vibration API — on iPhone, Safari doesn&apos;t give web apps access to the Taptic
+          Engine, so buttons here stay silent.
+        </p>
+      ) : (
+        <>
+          <p className="ef-help">A short tick when you press a button, move a tab or change a round.</p>
+          <label className="ef-check">
+            <input type="checkbox" checked={settings.enabled} onChange={(e) => update({ enabled: e.target.checked })} />
+            <span>Vibrate on taps</span>
+          </label>
+          {settings.enabled && (
+            <>
+              <Segmented
+                label="Haptic intensity"
+                options={INTENSITIES}
+                value={settings.intensity}
+                onChange={(intensity) => update({ intensity })}
+              />
+              <Button variant="secondary" onClick={() => haptic('success')}>
+                Try it
+              </Button>
+            </>
+          )}
+        </>
+      )}
+    </Panel>
   );
 }

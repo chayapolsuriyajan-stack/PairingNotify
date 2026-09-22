@@ -31,6 +31,10 @@ export interface FeedFollow {
   playerName: string;
   isMe: boolean;
   discoveryError: string | null;
+  /** When the poller last searched chess-results for this player's events. */
+  discoveryAt: number | null;
+  /** When it will search again (lib/poll.js#discoveryInterval). */
+  discoveryNextAt: number | null;
   tournaments: FeedTournament[];
 }
 
@@ -52,6 +56,32 @@ export interface Follow {
 export interface FeedResponse {
   feed: Feed;
   follows: Follow[];
+}
+
+/** One row of a chess-results player search (GET /api/search). */
+export interface FoundTournament {
+  id: string;
+  label: string;
+  endDate: string | null;
+  /** The player's start number, read from the row's own link. */
+  startNo: number | null;
+  name: string;
+  fideId: string | null;
+  federation: string | null;
+  rank: number | null;
+  rounds: number | null;
+}
+
+export interface FoundPlayer {
+  name: string;
+  fideId: string | null;
+  federation: string | null;
+  tournaments: FoundTournament[];
+}
+
+export interface SearchResponse {
+  query: string;
+  players: FoundPlayer[];
 }
 
 export interface Config {

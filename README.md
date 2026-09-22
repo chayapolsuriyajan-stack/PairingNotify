@@ -118,7 +118,10 @@ chess-results is a small, volunteer-run service with no API. This app:
 - caches your start number, so a normal poll is **one request per followed player**;
 - polls quiet events less often: every tick while active, every 15 minutes after 6
   quiet hours, and every 6 hours after 3 days;
-- runs auto-discovery at most every 30 minutes, and only keeps events that are current;
+- searches for a player's new events once a day, or every 30 minutes while they have an
+  event that moved today, and only keeps events that are current;
+- reads the start number straight out of the search result's own link, so a discovered
+  event costs one request instead of two;
 - serves browsing through a CDN-cached proxy, so everyone viewing the same standings
   costs chess-results one request per minute.
 
@@ -138,7 +141,8 @@ captured pages.
 | `No table found with columns …` | A column heading changed. Add the new heading to the alias list in the matching parser. |
 | No alerts, but data updates | Settings → *Send test alert*. Dead devices (HTTP 404/410) are removed automatically; re-enable alerts on that phone. |
 | Nothing updates at all | Check cron-job.org's history for `/api/poll` (401 means `CRON_SECRET` doesn't match). |
-| Wrong player matched | Add the FIDE ID on the Follow tab. |
+| Wrong player matched, or a player not found | Add the FIDE ID on the Follow tab: the search uses it first and falls back to the name. |
+| Notification badge is a blank white square | Android fills the badge's alpha channel with one colour, so it must be a transparent monochrome shape: `node scripts/make-badge.mjs`. |
 
 To check the parsers against today's markup:
 

@@ -1,16 +1,21 @@
 import { ViewTransition, type ReactNode } from 'react';
 
-const DIRECTIONAL = { 'nav-forward': 'nav-forward', 'nav-back': 'nav-back', default: 'none' } as const;
+/**
+ * Every in-app navigation dissolves pixel by pixel (design.md §6.3 L; CSS in
+ * motion.css). Direction is deliberately not encoded: on a four-tab bar a left/right
+ * wipe made the screen sit still behind a moving line and then jump, which read as a
+ * stall rather than as travel. `default: 'none'` keeps polls and browser back/forward
+ * instant.
+ */
+const PIXEL = { px: 'px', default: 'none' } as const;
 
 /**
- * A screen's root. On a tagged navigation the outgoing screen wipes out in the
- * direction of travel and the incoming one wipes in behind it (design.md §6.3 L; CSS in
- * motion.css). Untagged updates — polls, browser back/forward — don't animate.
- * Must be rendered by each page, not the layout: layouts persist across navigations.
+ * A screen's root. Must be rendered by each page, not the layout: layouts persist
+ * across navigations, so enter and exit never fire there.
  */
 export function Screen({ children }: { children: ReactNode }) {
   return (
-    <ViewTransition enter={DIRECTIONAL} exit={DIRECTIONAL} default="none">
+    <ViewTransition enter={PIXEL} exit={PIXEL} default="none">
       <main className="ef-page">{children}</main>
     </ViewTransition>
   );

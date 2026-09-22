@@ -4,6 +4,7 @@ import Link from '@/components/NavLink';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Overview, Pairing, PlayerResponse, StandingRow } from '@/lib/client/types';
 import { countdown, nameKey, points, roundStart, syncLabel, tidyName } from '@/lib/client/format';
+import { rememberEvent } from '@/lib/client/recents';
 import { Chip, HazardBanner, Panel } from './ui';
 import { Segmented } from './Segmented';
 import { SyncReadout, TopBar } from './TopBar';
@@ -38,6 +39,11 @@ export function TournamentScreen({ id, p, tab: initialTab }: { id: string; p: nu
   // Standings lag pairings: the ranking after round N appears once N is played.
   const standingsRounds = menu?.standingsRounds ?? [];
   const standingsRound = standingsRounds.length ? Math.min(shownRound ?? Infinity, lastOf(standingsRounds)!) : null;
+
+  // Remember this event so the Events tab can offer it again without a pasted link.
+  useEffect(() => {
+    if (overview.data) rememberEvent({ id, title: overview.data.title, startNo: me });
+  }, [id, overview.data, me]);
 
   // Keep the URL shareable without adding history entries.
   useEffect(() => {
