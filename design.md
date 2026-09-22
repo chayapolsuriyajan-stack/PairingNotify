@@ -149,19 +149,235 @@ Use no more than 2–3 motifs per screen. The look is disciplined, not busy.
 
 ## 6. Motion
 
-- **Fast and mechanical**: 120–220ms, `cubic-bezier(0.2, 0.8, 0.2, 1)` or
-  `steps()` for stuttery terminal effects. No bouncy springs.
-- **Wipes and reveals**: panels enter with a horizontal clip-path wipe or a
-  sliding mask instead of fading.
-- **Scan and flicker**: brief 1–2 frame opacity flicker or scanline sweep on data
-  updates, used only when something actually changed.
-- **Text scramble**: numbers or codes cycle through characters before settling.
-  Save it for important reveals like a new pairing.
-- **Screen changes**: one screen dissolves into the next a pixel at a time — a grid of
-  square cells shrinks away in hard `steps()` and the incoming screen grows back out of
-  it, mono, ~380ms. No sliding and no direction: a horizontal wipe leaves the screen
-  apparently frozen behind a moving line and then jumping.
-- Respect `prefers-reduced-motion`: fall back to instant state changes.
+> These patterns come from watching the game's menus, not from frame-by-frame
+> measurement. The timings are starting values to tune by eye.
+
+### 6.1 Principles
+
+Endfield's UI moves like a machine booting a panel, not like paper sliding or a
+bubble popping.
+
+| Principle | Meaning |
+|---|---|
+| **Mechanical, not organic** | Motion accelerates hard and stops dead. No overshoot, bounce or spring wobble. |
+| **Build, don't fade** | Elements are *constructed*: a line draws first, the frame extends from it, then content fills in. Plain opacity fades are rare. |
+| **Staggered assembly** | A screen assembles in a quick cascade (frame, then header, then rows, then micro-labels) rather than appearing all at once. |
+| **Linear sweeps** | Wipes and scans travel in one direction, usually left to right or top to bottom, like a scanner head. |
+| **Data feels live** | Numbers count, codes scramble, and indicators blink on steps, as if a system is computing them. |
+| **Quiet at rest** | Once a screen has built, almost nothing moves. Idle motion is limited to a slow blink or a thin scanning line. |
+
+### 6.2 Timing and easing tokens
+
+```css
+:root {
+  --t-instant: 80ms;   /* hover/press feedback, flicker frames */
+  --t-fast:   160ms;   /* buttons, chips, tab underline */
+  --t-base:   240ms;   /* panel wipe, row reveal */
+  --t-slow:   420ms;   /* hero reveal, screen build */
+  --t-stagger: 40ms;   /* delay between cascading items */
+
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);   /* snap in, long settle, no overshoot */
+  --ease-in-out: cubic-bezier(0.7, 0, 0.3, 1);    /* sweeps and bars */
+  --ease-in:     cubic-bezier(0.7, 0, 0.84, 0);   /* exits: leave faster than you arrive */
+}
+```
+
+- Exits are about 30% shorter than entrances.
+- Use `steps(n)` for anything meant to feel digital: blinking cursors, segmented
+  progress, and scramble ticks.
+- Never animate longer than about 500ms in the UI chrome. Long, cinematic motion
+  belongs to character and gacha screens, not menus.
+
+### 6.3 Pattern library
+
+#### A. Line-draw then frame (panel entrance)
+
+A 1px rule draws across the top from left to right, the panel's body wipes down
+from that rule, and then the content fades up by 4px.
+
+```css
+.panel { animation: ef-wipe var(--t-base) var(--ease-out) both; }
+.panel::before {                 /* top rule */
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 1px;
+  background: var(--accent); transform-origin: left;
+  animation: ef-draw var(--t-fast) var(--ease-in-out) both;
+}
+@keyframes ef-draw { from { transform: scaleX(0); } }
+@keyframes ef-wipe { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
+```
+
+#### B. Staggered cascade (list and screen build)
+
+Rows enter one after another with a small slide from the left (8–12px) and a
+wipe. Cap the stagger at about 8 items so long lists don't feel slow.
+
+```css
+.history li {
+  animation: ef-row var(--t-base) var(--ease-out) both;
+  animation-delay: calc(min(var(--i), 8) * var(--t-stagger));
+}
+@keyframes ef-row {
+  from { opacity: 0; transform: translateX(-10px); clip-path: inset(0 100% 0 0); }
+  to   { opacity: 1; transform: none;               clip-path: inset(0); }
+}
+```
+
+Set `--i` per item from JavaScript (`li.style.setProperty('--i', index)`).
+
+#### C. Text scramble / decode
+
+Codes and numbers cycle through random glyphs (`0-9 A-Z / - _ #`) and lock in
+from left to right. Use it for new or changed values only, never for body text.
+
+```js
+function scramble(el, finalText, { duration = 420, charset = '0123456789ABCDEF#/-' } = {}) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = finalText; return; }
+  const start = performance.now();
+  (function frame(now) {
+    const p = Math.min((now - start) / duration, 1);
+    const locked = Math.floor(p * finalText.length);
+    el.textContent = [...finalText].map((c, i) =>
+      i < locked || c === ' ' ? c : charset[Math.random() * charset.length | 0]).join('');
+    if (p < 1) requestAnimationFrame(frame);
+  })(start);
+}
+```
+
+Give the element `font-variant-numeric: tabular-nums` and a mono font so the
+width doesn't jitter while it scrambles.
+
+#### D. Count-up numerals
+
+Big numbers (ratings, scores, round) count quickly from the old value to the new
+one with `--ease-out`, over 300–500ms. Apply it only when the value actually
+changes, not on every render.
+
+#### E. Scan line (data refresh)
+
+A thin horizontal band (1–2px, accent or cyan, with a soft trailing gradient)
+sweeps once across a panel whose data just updated.
+
+```css
+.is-updated::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgb(255 229 0 / .18) 40%, transparent 42%);
+  background-size: 250% 100%;
+  animation: ef-scan var(--t-slow) var(--ease-in-out) 1 both;
+}
+@keyframes ef-scan { from { background-position: 100% 0; } to { background-position: -50% 0; } }
+```
+
+#### F. Flicker-on
+
+On important state changes the element blinks 2–3 times over about 120ms before
+settling, like a display powering on.
+
+```css
+@keyframes ef-flicker { 0%,20%,40% { opacity: .2 } 10%,30%,100% { opacity: 1 } }
+.is-live { animation: ef-flicker 160ms steps(1) both; }
+```
+
+#### G. Corner-bracket focus and selection
+
+On focus or hover, the L-shaped corner brackets slide in from slightly outside
+the element (about 4px) and tighten onto it. On selection, a yellow left bar grows
+from 0 to full height.
+
+```css
+.pairing--current::after {       /* left accent bar */
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: var(--accent); transform-origin: top;
+  animation: ef-bar var(--t-base) var(--ease-out) both;
+}
+@keyframes ef-bar { from { transform: scaleY(0); } }
+```
+
+#### H. Button press
+
+There's no ripple and no scale bounce. On press the button inverts (the yellow
+fill swaps to an ink fill with yellow text) or nudges 1px down and right, within
+`--t-instant`. A yellow sheen can wipe across the label on hover (desktop only).
+
+#### I. Hazard-stripe march
+
+Warning stripes scroll slowly and continuously (`background-position`, linear,
+about 1.5s per cycle). This is the one idle loop allowed, and only while the
+warning is active.
+
+```css
+.banner--warn::before {
+  background: repeating-linear-gradient(-45deg, var(--accent) 0 8px, #141414 8px 16px);
+  background-size: 22.6px 100%;
+  animation: ef-march 1.5s linear infinite;
+}
+@keyframes ef-march { to { background-position: 22.6px 0; } }
+```
+
+#### J. Segmented progress / loading
+
+Loading shows discrete blocks lighting in sequence (`steps()`), or a single block
+bouncing between the ends of a track. There's no spinning circle. A blinking
+`_` cursor or a `LOADING ···` readout goes with it.
+
+#### K. Toast / notification strip
+
+A leading accent bar appears first, then the strip wipes out from it horizontally,
+text decodes (pattern C), and the strip holds, then collapses back into the bar
+and vanishes. Enter takes `--t-base`; exit takes `--t-fast`.
+
+#### L. Screen and tab transitions
+
+One screen dissolves into the next a pixel at a time: a grid of square cells shrinks
+away in hard `steps()`, and the incoming screen grows back out of the same grid, mono
+(briefly desaturated), over about `--t-fast` out / `--t-base` in. No sliding and no
+direction — a four-tab bar has no consistent "forward", and an earlier left/right wipe
+left the screen sitting still behind a moving line and then jumping, which read as a
+stall rather than as travel. The tab bar is the one fixed point: it never dissolves and
+stays tappable throughout. The tab underline and any segmented-control ink still slide
+to the new selection (`transform: translateX`) with `--ease-in-out`. Nothing crossfades.
+
+### 6.4 Motion hierarchy (what gets which effect)
+
+| Importance | Examples | Motion budget |
+|---|---|---|
+| Hero event | New pairing published, round starts | Full sequence: bar grows, then wipe, then scramble, then flicker. About 400ms. |
+| Data change | Result filled in, rating updated | Scan line or count-up only. |
+| Structure | Page load, panels, lists | Line-draw plus cascade, once per load. |
+| Feedback | Tap, focus, toggle | Invert or bracket, under 100ms. |
+| Idle | Watching state, warning | One slow loop at most (a blinking dot or hazard march). |
+
+### 6.5 Accessibility and performance
+
+- Under `prefers-reduced-motion: reduce`, turn off wipes, cascades, scrambles and
+  loops. Keep instant state changes plus a static accent (for example the yellow bar
+  already at full height).
+
+  ```css
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+  ```
+- Animate only `transform`, `opacity` and `clip-path`. Don't animate layout
+  properties.
+- Flicker must stay under 3 flashes per second and cover a small area (WCAG 2.3.1).
+- Screen readers get the final value at once. Scrambled text uses an `aria-label`
+  or `aria-live` holding the real text, never the intermediate glyphs.
+- Don't replay entrance animations on every poll refresh. Animate only the
+  elements whose data actually changed (the app already diffs pairings, so reuse
+  that).
+
+### 6.6 PairingNotify motion map
+
+| Moment | Animation |
+|---|---|
+| App open | Topbar rule draws, then tournament sections cascade in (B). About 400ms total. |
+| **New pairing detected** | The hero card's yellow bar grows (G), the card wipes in (A), the board number and opponent decode (C), and it finishes with one flicker (F). This is the signature moment of the app. |
+| Refresh tapped | The icon button inverts (H) and a segmented readout `SYNC ···` steps. Changed cards get a scan line (E); unchanged cards stay still. |
+| Result arrives in history | Only that row gets a scan line, and the score decodes. |
+| Degraded banner | Wipes down from the top with the hazard stripe marching (I). |
+| Switching screen or tab | Pixel dissolve (L): the outgoing screen shrinks to nothing in a grid, the incoming one grows back out of it. The tab bar itself never moves. |
+| A live event ● dot | A small blinking dot next to LIVE/WATCHING chips (1s `steps(2)` blink). This is the only persistent idle motion besides an active hazard march. |
+| Enable notifications succeeds | The button fill wipes to a `CONFIRMED` state with a flicker, then settles. |
 
 ---
 
@@ -247,4 +463,6 @@ hall, often in dim light, and it fits the HUD side of Endfield. Offer a light
 - [Arknights: Endfield on Wikipedia](https://en.wikipedia.org/wiki/Arknights:_Endfield)
 - [GameFontLibrary: Arknights: Endfield fonts](https://www.gamefontlibrary.com/games/arknights:-endfield)
 - [Game UI Database: Arknights](https://www.gameuidatabase.com/gameData.php?id=478)
+- [Character menu animations in Endfield (YouTube)](https://www.youtube.com/watch?v=U_uRTrbBU5A)
+- [Endfield UI walkthrough (UltimateGacha)](https://ultimategacha.com/arknights-endfield-ui-walkthrough-every-menu-subsystem-explained-new-players/)
 - [Example community Endfield-style web UI (TNTKien/codex-resets#6)](https://github.com/TNTKien/codex-resets/pull/6)
