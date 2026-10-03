@@ -448,3 +448,53 @@ a { color: inherit; }
   font-size: 15px;
 }
 .ef-result .ef-rows { margin-bottom: 12px; }
+
+/* ---------- PGN renamer ---------- */
+select.ef-input {
+  appearance: none;
+  padding-right: 32px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+select.ef-input option { background: var(--bg); color: var(--text); }
+
+.ef-pgn__rows { list-style: none; margin: 0 0 16px; padding: 0; }
+.ef-pgn__row {
+  position: relative;
+  padding: 12px 0 14px 14px;
+  border-top: 1px solid var(--line);
+}
+.ef-pgn__row:last-child { border-bottom: 1px solid var(--line); }
+/* A chapter that still needs input is marked with the alert bar and keeps its old name. */
+.ef-pgn__row--flag::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--alert);
+}
+.ef-pgn__head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+.ef-pgn__orig { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.ef-pgn__fields { display: grid; grid-template-columns: minmax(0, 1fr) 132px; gap: 8px; margin-top: 8px; }
+.ef-pgn__preview {
+  margin: 8px 0 0;
+  font: 500 14px var(--font-mono-stack);
+  overflow-wrap: anywhere;
+}
+.ef-pgn__preview--keep { color: var(--muted); font-weight: 400; }
+.ef-pgn__arrow { margin-right: 8px; font-size: 11px; color: var(--accent-text); }
+.ef-pgn__from {
+  margin: 4px 0 0;
+  font: 400 10px var(--font-mono-stack);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ef-pgn__note { margin: 4px 0 0; font-size: 13px; color: var(--info); }
+.ef-pgn__summary { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }

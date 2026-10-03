@@ -14,6 +14,9 @@ who are tired of pinch-zooming ASP.NET tables between rounds.
 - **Next-opponent forecast** while your round is still being played, including
   "if I win / draw / lose" (see [How good is the forecast?](#how-good-is-the-forecast)).
 - **Works in a hall with bad Wi-Fi**: the last data you loaded stays available offline.
+- **Lichess study renamer** (Events tab → Tools, or `/pgn`): rewrites every chapter of a
+  study export to "opponent + score" before you import it into a new study. See
+  [Renaming a Lichess study](#renaming-a-lichess-study).
 
 The look follows [`design.md`](design.md): an industrial "field terminal" style with
 graphite, signal yellow and mono readouts. It uses dark mode by default and switches to
@@ -109,6 +112,34 @@ can see how much to trust it there.
 
 ---
 
+## Renaming a Lichess study
+
+A study export names each chapter in its `[Event]` tag ("Study: Chapter"). The renamer
+(`/pgn`, linked from the Events tab) rewrites that tag to `<Opponent> <Score>`, with the
+score from **your** side (`1-0` = you won), so the chapters read well after you import the
+PGN into a new study. It runs entirely in your browser: nothing is uploaded.
+
+Where the opponent and score come from, per field, first match wins:
+
+1. `[White]`/`[Black]` when one of them is your Lichess username (a `*` result is ignored);
+2. the chess-results rows you paste from your player page, matched to games in order;
+3. the existing chapter name, `Viriya 1-0` (the `Study: ` prefix is stripped);
+4. a result comment at the end of the moves, `{ 1-0 }`.
+
+Study exports often have no player tags and `[Result "*"]` everywhere, which is why the
+chess-results rows exist. Scores read from a chapter name or a comment are taken as already
+being yours, since neither says which colour you had. Every value is editable before you
+copy or download; a chapter still missing its opponent or score keeps its original name and
+is flagged. When sources disagree on a score, the row says so.
+
+Only the `[Event]` tag (and `[ChapterName]`, which you can switch off) changes: moves,
+comments, variations, NAGs, every other tag, blank lines and line endings stay as they were,
+and `lib/__tests__/pgn.test.js` checks that line by line. The name template (default
+`{opponent} {score}`), name order (`First Last` or `Last, First`) and your username are
+remembered on the device.
+
+---
+
 ## Being polite to chess-results
 
 chess-results is a small, volunteer-run service with no API. This app:
@@ -182,6 +213,7 @@ app/                    Next.js routes: screens and /api
 components/             screens and UI primitives (components/ui)
 lib/chessresults/       polite HTTP client + parsers (one per page type)
 lib/predict/            Swiss model, Berger tables, forecast / Monte Carlo
+lib/pgn/                Lichess study renamer: PGN splitting/renaming, chess-results row paste
 lib/poll.js             one poll tick: discover → observe → diff → push → feed
 lib/diff.js             which pairings are new (seeds silently, ignores byes)
 lib/notify.js           lock-screen copy + multi-device web push

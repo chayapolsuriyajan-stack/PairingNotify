@@ -166,6 +166,15 @@ export function EventsScreen() {
         </form>
       </Panel>
 
+      <Panel code={`${code()} / TOOLS`} title="Lichess study renamer">
+        <p className="ef-help">
+          Rename every chapter of a Lichess study export to &quot;opponent + score&quot; before you import it into a new study.
+        </p>
+        <Button href="/pgn" variant="secondary" arrow>
+          Open the renamer
+        </Button>
+      </Panel>
+
       {!needsLogin && feed.data && events.size === 0 && unseen.length === 0 && (
         <p className="ef-help">
           Nothing watched yet. Search for yourself above, or add yourself on the{' '}
