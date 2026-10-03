@@ -3,16 +3,23 @@
 import Link from '@/components/NavLink';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Screen } from '@/components/Screen';
-import { parseChessResultsRows } from '@/lib/pgn/rows.js';
+import { parseChessResultsRows, rowsFromCard } from '@/lib/pgn/rows.js';
+import { parseTournamentRef } from '@/lib/ref.js';
 import { SCORES, missingFields, planGames, renameStudy } from '@/lib/pgn/study.js';
-import { pad2 } from '@/lib/client/format';
+import { pad2, tidyName } from '@/lib/client/format';
 import { DEFAULT_PGN_PREFS, loadPgnPrefs, savePgnPrefs, type NameOrder, type PgnPrefs } from '@/lib/client/pgnPrefs';
+import type { PlayerResponse } from '@/lib/client/types';
 import { Button, Chip, Panel, SectionHeader } from './ui';
-import { toast } from './Motion';
+import { Loading, toast } from './Motion';
 import { Segmented } from './Segmented';
 import { TopBar } from './TopBar';
+import { useAccount } from './useAccount';
+import { useJson } from './useJson';
 
 type Edit = { opponent?: string; score?: string };
+type RowsMode = 'tournament' | 'paste';
+/** A player's card in one tournament: where "auto fill" reads the opponents from. */
+type Source = { id: string; startNo: number };
 
 /** Where a pre-filled value came from, in the words the screen uses. */
 const SOURCE: Record<string, string> = {
@@ -43,8 +50,15 @@ function fileNameFor(studyName: string): string {
  * nothing but the [Event] (and [ChapterName]) tags is ever changed (lib/pgn/study.js).
  */
 export function PgnRenamer() {
+  const { feed, needsLogin } = useAccount({ refreshMs: 0 });
   const [pgn, setPgn] = useState('');
   const [rowsText, setRowsText] = useState('');
+  // Where the opponents come from. Until you choose, it is a tournament when there is
+  // one to pick from (you follow someone), and a paste otherwise.
+  const [mode, setMode] = useState<RowsMode | null>(null);
+  const [pick, setPick] = useState(''); // "<id>/<startNo>" of a followed player's event, or "other"
+  const [otherLink, setOtherLink] = useState('');
+  const [otherStart, setOtherStart] = useState('');
   const [prefs, setPrefs] = useState<PgnPrefs>(DEFAULT_PGN_PREFS);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   // What you typed over the pre-filled values, by game. Cleared when the PGN changes,
@@ -63,16 +77,63 @@ export function PgnRenamer() {
 
   const setPref = <K extends keyof PgnPrefs>(key: K, value: PgnPrefs[K]) => setPrefs((p) => ({ ...p, [key]: value }));
 
+  // The tournaments of the players you follow (you first), one choice per player and event.
+  const options = useMemo(() => {
+    const follows = [...(feed.data?.feed.follows ?? [])].sort((a, b) => Number(b.isMe) - Number(a.isMe));
+    const seen = new Map<string, { key: string; label: string } & Source>();
+    for (const follow of follows) {
+      for (const t of follow.tournaments) {
+        const key = `${t.id}/${t.startNo}`;
+        if (!seen.has(key)) seen.set(key, { key, id: t.id, startNo: t.startNo, label: `${tidyName(follow.playerName)} · ${t.title}` });
+      }
+    }
+    return [...seen.values()];
+  }, [feed.data]);
+
+  const rowsMode: RowsMode = mode ?? (options.length > 0 ? 'tournament' : 'paste');
+
+  // "Another tournament": a pasted chess-results link (its snr= is the start number) or
+  // an event number plus the start number typed in. Needed for a study of an event that
+  // is no longer in your followed players' lists.
+  const otherRef = useMemo(() => parseTournamentRef(otherLink), [otherLink]);
+  const otherStartNo = otherRef?.startNo ?? (/^\d+$/.test(otherStart.trim()) ? Number(otherStart.trim()) : null);
+  const source: Source | null = useMemo(() => {
+    if (rowsMode !== 'tournament') return null;
+    if (pick === 'other') return otherRef && otherStartNo ? { id: otherRef.id, startNo: otherStartNo } : null;
+    return options.find((o) => o.key === pick) ?? null;
+  }, [rowsMode, pick, options, otherRef, otherStartNo]);
+
+  const card = useJson<PlayerResponse>(source ? `/api/cr/${source.id}/player/${source.startNo}` : null);
+  // useJson keeps the previous answer until the new one lands: only trust the one that
+  // belongs to the card being asked for.
+  const cardRows = useMemo(
+    () => (card.data && source && card.data.id === source.id && card.data.startNo === source.startNo ? rowsFromCard(card.data.rounds) : []),
+    [card.data, source],
+  );
+
   const parsedRows = useMemo(() => parseChessResultsRows(rowsText), [rowsText]);
+  const rows: { name: string; score: string; opponentNo?: number | null }[] =
+    rowsMode === 'tournament' ? cardRows : parsedRows.rows;
   const plan = useMemo(
-    () => planGames(pgn, { username: prefs.username, rows: parsedRows.rows, nameOrder: prefs.nameOrder }),
-    [pgn, prefs.username, prefs.nameOrder, parsedRows.rows],
+    () => planGames(pgn, { username: prefs.username, rows, nameOrder: prefs.nameOrder }),
+    [pgn, prefs.username, prefs.nameOrder, rows],
   );
   const entries = useMemo(() => plan.entries.map((entry) => ({ ...entry, ...edits[entry.index] })), [plan, edits]);
   const result = useMemo(
     () => renameStudy(pgn, entries, { template: prefs.template, updateChapterName: prefs.updateChapterName }),
     [pgn, entries, prefs.template, prefs.updateChapterName],
   );
+
+  /**
+   * The opponent's page in the event the rows were read from. Only offered while the
+   * opponent is still the one the tournament gave: type over it and the link would go
+   * to someone else.
+   */
+  const pageHref = (entry: (typeof entries)[number]): string | null => {
+    const opponentNo = rows[entry.index]?.opponentNo;
+    if (!source || !opponentNo || entry.opponentFrom !== 'chess-results' || edits[entry.index]?.opponent !== undefined) return null;
+    return `/t/${source.id}/p/${opponentNo}?me=${source.startNo}`;
+  };
 
   const games = entries.length;
   const renamed = result.names.filter(Boolean).length;
@@ -204,32 +265,139 @@ export function PgnRenamer() {
         </div>
       </Panel>
 
-      <Panel code="02 / CHESS-RESULTS" title="Opponents and results">
+      <Panel code="02 / OPPONENTS" title="Opponents and results">
         <div className="ef-form">
           <p className="ef-help">
-            Study exports often have no player names and a result of &quot;*&quot;. On your chess-results player page (the one
-            that lists your rounds), select the table, copy it and paste it here. Rows are matched to games in order, round
+            Study exports often have no player names and a result of &quot;*&quot;. Read them from the tournament instead:
+            opponents and results are taken from the player&apos;s card, round by round, and matched to games in order, round
             1 first.
           </p>
-          <label className="ef-field">
-            <span className="ef-field__label">Pasted rows (optional)</span>
-            <span className="ef-focus">
-              <textarea
-                className="ef-input ef-textarea"
-                rows={5}
-                spellCheck={false}
-                autoCapitalize="off"
-                placeholder={'1\t3\t12\t\tViriya, A-Nak\t1520\tTHA\t0\t1'}
-                value={rowsText}
-                onChange={(e) => setRowsText(e.target.value)}
-              />
-            </span>
-          </label>
-          {rowsText.trim() && (
-            <p className="ef-help">
-              {parsedRows.rows.length} row{parsedRows.rows.length === 1 ? '' : 's'} read
-              {parsedRows.ignored > 0 && ` · ${parsedRows.ignored} line${parsedRows.ignored === 1 ? '' : 's'} skipped (header or bye)`}
-            </p>
+          <Segmented<RowsMode>
+            label="Where the opponents come from"
+            value={rowsMode}
+            onChange={setMode}
+            options={[
+              { value: 'tournament', label: 'Tournament' },
+              { value: 'paste', label: 'Paste rows' },
+            ]}
+          />
+
+          {rowsMode === 'tournament' && (
+            <>
+              <label className="ef-field">
+                <span className="ef-field__label">Whose tournament</span>
+                <span className="ef-focus">
+                  <select className="ef-input" aria-label="Tournament" value={pick} onChange={(e) => setPick(e.target.value)}>
+                    <option value="">Choose a tournament…</option>
+                    {options.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
+                    <option value="other">Another tournament…</option>
+                  </select>
+                </span>
+              </label>
+              {needsLogin && (
+                <p className="ef-help">
+                  Unlock the app on the{' '}
+                  <Link className="ef-link" href="/follow">
+                    Follow
+                  </Link>{' '}
+                  tab to list your followed players&apos; tournaments here.
+                </p>
+              )}
+              {!needsLogin && feed.data && options.length === 0 && (
+                <p className="ef-help">
+                  Follow yourself on the{' '}
+                  <Link className="ef-link" href="/follow">
+                    Follow
+                  </Link>{' '}
+                  tab to pick from your tournaments, or choose another tournament.
+                </p>
+              )}
+
+              {pick === 'other' && (
+                <>
+                  <label className="ef-field">
+                    <span className="ef-field__label">Your player card on chess-results</span>
+                    <span className="ef-focus">
+                      <input
+                        className="ef-input"
+                        inputMode="url"
+                        autoComplete="off"
+                        spellCheck={false}
+                        placeholder="https://chess-results.com/tnr1486488.aspx?art=9&snr=5"
+                        value={otherLink}
+                        onChange={(e) => setOtherLink(e.target.value)}
+                      />
+                    </span>
+                  </label>
+                  {otherRef && otherRef.startNo == null && (
+                    <label className="ef-field">
+                      <span className="ef-field__label">Your start number</span>
+                      <span className="ef-focus">
+                        <input
+                          className="ef-input"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          placeholder="5"
+                          value={otherStart}
+                          onChange={(e) => setOtherStart(e.target.value)}
+                        />
+                      </span>
+                    </label>
+                  )}
+                  <p className="ef-help">
+                    Open your own row on the tournament page and copy its address: it contains your start number
+                    (snr=). An event number works too, with the start number typed in.
+                  </p>
+                  {otherLink.trim() && !otherRef && <p className="ef-error">That is not a chess-results tournament link.</p>}
+                </>
+              )}
+
+              {source && card.loading && !cardRows.length && <Loading label="Reading the player card" slow />}
+              {source && card.error && !card.data && (
+                <p className="ef-error">
+                  Could not read that tournament ({card.error}). Check the link and start number, or paste the rows instead.
+                </p>
+              )}
+              {source && cardRows.length > 0 && card.data && (
+                <p className="ef-help">
+                  {cardRows.length} round{cardRows.length === 1 ? '' : 's'} read for {tidyName(card.data.header.name)}
+                  {card.data.header.points != null && ` · ${card.data.header.points} pts`}
+                </p>
+              )}
+            </>
+          )}
+
+          {rowsMode === 'paste' && (
+            <>
+              <p className="ef-help">
+                On the player&apos;s chess-results page (the one that lists the rounds), select the table, copy it and paste it
+                here.
+              </p>
+              <label className="ef-field">
+                <span className="ef-field__label">Pasted rows</span>
+                <span className="ef-focus">
+                  <textarea
+                    className="ef-input ef-textarea"
+                    rows={5}
+                    spellCheck={false}
+                    autoCapitalize="off"
+                    placeholder={'1\t3\t12\t\tViriya, A-Nak\t1520\tTHA\t0\t1'}
+                    value={rowsText}
+                    onChange={(e) => setRowsText(e.target.value)}
+                  />
+                </span>
+              </label>
+              {rowsText.trim() && (
+                <p className="ef-help">
+                  {parsedRows.rows.length} row{parsedRows.rows.length === 1 ? '' : 's'} read
+                  {parsedRows.ignored > 0 && ` · ${parsedRows.ignored} line${parsedRows.ignored === 1 ? '' : 's'} skipped (header or bye)`}
+                </p>
+              )}
+            </>
           )}
           {plan.warnings.map((warning) => (
             <p key={warning} className="ef-help ef-help--warn">
@@ -337,7 +505,16 @@ export function PgnRenamer() {
                   ) : (
                     <p className="ef-pgn__preview ef-pgn__preview--keep">Keeps its original name until this is filled in</p>
                   )}
-                  {(edited || from) && <p className="ef-pgn__from">{edited ? 'Edited by you' : `From ${from}`}</p>}
+                  {(edited || from || pageHref(entry)) && (
+                    <div className="ef-pgn__meta">
+                      <span className="ef-pgn__from">{edited ? 'Edited by you' : from ? `From ${from}` : ''}</span>
+                      {pageHref(entry) && (
+                        <Link className="ef-link" href={pageHref(entry)!}>
+                          Their page ▶
+                        </Link>
+                      )}
+                    </div>
+                  )}
                   {entry.notes.map((note) => (
                     <p key={note} className="ef-pgn__note">
                       {note}

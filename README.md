@@ -122,7 +122,11 @@ PGN into a new study. It runs entirely in your browser: nothing is uploaded.
 Where the opponent and score come from, per field, first match wins:
 
 1. `[White]`/`[Black]` when one of them is your Lichess username (a `*` result is ignored);
-2. the chess-results rows you paste from your player page, matched to games in order;
+2. the opponents and results from chess-results, matched to games in order. Pick a
+   tournament of a player you follow (yours first) and they fill in by themselves, each
+   with a **Their page** link to that opponent in the same event; or choose *Another
+   tournament…* with a player-card link, or switch to *Paste rows*. Editing an opponent
+   removes its link, since it would no longer point at them;
 3. the existing chapter name, `Viriya 1-0` (the `Study: ` prefix is stripped);
 4. a result comment at the end of the moves, `{ 1-0 }`.
 

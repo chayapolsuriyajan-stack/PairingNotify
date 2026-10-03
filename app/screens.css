@@ -498,3 +498,7 @@ select.ef-input option { background: var(--bg); color: var(--text); }
 }
 .ef-pgn__note { margin: 4px 0 0; font-size: 13px; color: var(--info); }
 .ef-pgn__summary { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+/* "From chess-results" on the left, the opponent's page on the right. The link keeps its
+   44px tap height, so this line is only that tall when there is a link to tap. */
+.ef-pgn__meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ef-pgn__meta .ef-pgn__from { margin: 4px 0 0; }
