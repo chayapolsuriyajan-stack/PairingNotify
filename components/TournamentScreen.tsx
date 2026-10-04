@@ -193,6 +193,7 @@ function PairingsView({ id, round, me }: { id: string; round: number; me: number
       <Search value={query} onChange={setQuery} placeholder="Find a player or board" />
       {pairings.error && !pairings.data && <p className="ef-error">{pairings.error}</p>}
       {pairings.loading && !pairings.data && <Loading label={`Reading round ${round} pairings`} slow />}
+      {pairings.data && games.length === 0 && <p className="ef-help">No pairings published for round {round} yet.</p>}
       {mine && !query && (
         <>
           <p className="ef-kicker">Your board</p>
@@ -271,6 +272,7 @@ function StandingsView({ id, round, me }: { id: string; round: number | null; me
       <Search value={query} onChange={setQuery} placeholder="Find a player or federation" />
       {standings.error && !standings.data && <p className="ef-error">{standings.error}</p>}
       {standings.loading && !standings.data && <Loading label="Reading standings" slow />}
+      {standings.data && rows.length === 0 && <p className="ef-help">No standings published for this round.</p>}
       <ul className="ef-rows">
         {shown.map((r) => (
           <li

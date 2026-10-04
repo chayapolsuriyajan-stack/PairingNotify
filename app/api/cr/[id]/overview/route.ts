@@ -28,7 +28,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       const [scheduleResult, crossResult] = await Promise.allSettled([fetchSchedule(id), fetchCrosstable(id)]);
       const schedule = scheduleResult.status === 'fulfilled' ? scheduleResult.value : [];
 
-      if (crossResult.status === 'fulfilled') {
+      // An empty crosstable (no round paired yet) is the same as none at all.
+      if (crossResult.status === 'fulfilled' && crossResult.value.players.length > 0) {
         const cross = crossResult.value;
         return {
           id,
