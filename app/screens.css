@@ -188,6 +188,18 @@ a { color: inherit; }
   text-transform: uppercase;
 }
 .ef-hero__opp { margin-top: 14px; }
+.ef-hero__score {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0 0;
+  font: 500 13px var(--font-mono-stack);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ef-hero__score strong { color: var(--text); font-size: 16px; font-variant-numeric: tabular-nums; }
+.ef-hero__scoreunit { font-size: 11px; }
 .ef-hero__name {
   margin: 2px 0 0;
   font: 600 24px/1.2 var(--font-body-stack);
@@ -426,6 +438,8 @@ a { color: inherit; }
   color: var(--muted);
 }
 .ef-forecast__why { color: var(--info); }
+.ef-forecast__pts { color: var(--text); font-weight: 600; }
+.ef-forecast__facts .ef-piece { display: inline-block; width: 9px; height: 9px; vertical-align: -1px; }
 .ef-forecast__basis {
   margin: 10px 0 4px;
   font: 400 11px var(--font-mono-stack);

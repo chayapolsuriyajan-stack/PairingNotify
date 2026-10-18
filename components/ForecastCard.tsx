@@ -4,7 +4,7 @@ import Link from '@/components/NavLink';
 import { useEffect, useMemo, useState } from 'react';
 import type { Overview } from '@/lib/client/types';
 import { forecast, trackRecord } from '@/lib/predict/forecast.js';
-import { percent, tidyName } from '@/lib/client/format';
+import { percent, points, tidyName } from '@/lib/client/format';
 import { Segmented } from './Segmented';
 import { Chip } from './ui';
 import { CountUp, Loading } from './Motion';
@@ -16,6 +16,9 @@ interface Candidate {
   name: string;
   title: string | null;
   rating: number | null;
+  /** Points now, and the average after the live round in the simulations. */
+  points: number | null;
+  projected?: number | null;
   probability: number;
   whiteProbability: number;
   reasons: string[];
@@ -117,7 +120,20 @@ export function ForecastCard({ overview, me, compact = false }: { overview: Over
                     {tidyName(c.name)}
                   </Link>
                   <span className="ef-forecast__facts">
-                    {c.rating ?? 'Unrated'} · {c.whiteProbability >= 0.5 ? 'YOU WHITE' : 'YOU BLACK'}
+                    <span className="ef-forecast__pts">
+                      {points(c.points)}
+                      {c.projected != null && Math.abs(c.projected - (c.points ?? 0)) >= 0.25
+                        ? ` → ~${points(Math.round(c.projected * 2) / 2)}`
+                        : ''}{' '}
+                      PTS
+                    </span>
+                    {' · '}
+                    {c.rating ?? 'Unrated'} ·{' '}
+                    <span
+                      className={`ef-piece ef-piece--${c.whiteProbability >= 0.5 ? 'white' : 'black'}`}
+                      aria-hidden="true"
+                    />{' '}
+                    {c.whiteProbability >= 0.5 ? 'YOU WHITE' : 'YOU BLACK'}
                   </span>
                   {!compact && c.reasons.length > 0 && (
                     <span className="ef-forecast__why">{c.reasons.join(' · ')}</span>

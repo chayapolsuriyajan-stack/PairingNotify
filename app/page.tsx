@@ -24,6 +24,12 @@ export default function NowPage() {
 
   const overview = useJson<Overview>(myEvent ? `/api/cr/${myEvent.id}/overview` : null, { refreshMs: 60_000 });
   const start = roundStart(overview.data?.schedule, myEvent?.latestPaired?.round);
+  // Only trust the crosstable for this event (useJson keeps the previous URL's data).
+  const crossPlayers = overview.data?.id === myEvent?.id ? (overview.data?.players ?? []) : [];
+  const pointsOf = (no: number | null | undefined) => crossPlayers.find((p) => p.startNo === no)?.points ?? null;
+  const scores = crossPlayers.length
+    ? { me: pointsOf(myEvent?.startNo), opponent: pointsOf(myEvent?.latestPaired?.opponentNo) }
+    : null;
   const isNew = useMemo(
     () => (myEvent?.latestPaired ? markSeen(`${myEvent.id}:${myEvent.startNo}`, myEvent.latestPaired.round) : false),
     [myEvent?.id, myEvent?.startNo, myEvent?.latestPaired?.round], // eslint-disable-line react-hooks/exhaustive-deps
@@ -106,7 +112,15 @@ export default function NowPage() {
         </Panel>
       )}
 
-      {myEvent && <NextGameHero tournament={myEvent} start={start} isNew={isNew} totalRounds={overview.data?.totalRounds ?? null} />}
+      {myEvent && (
+        <NextGameHero
+          tournament={myEvent}
+          start={start}
+          isNew={isNew}
+          totalRounds={overview.data?.totalRounds ?? null}
+          scores={scores}
+        />
+      )}
 
       {myEvent && overview.data && overview.data.started && (
         <ForecastCard overview={overview.data} me={myEvent.startNo} compact />

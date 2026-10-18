@@ -69,9 +69,12 @@ body {
 .ef-hero__ruler { position: relative; margin-top: 8px; }
 .ef-hero__colourrow { display: flex; align-items: center; gap: 8px; }
 .ef-pawn { width: 20px; height: 26px; flex: none; }
-.ef-pawn--white { fill: var(--black-piece); }
-.ef-pawn--black { fill: #ecebea; }
-.ef-pawn--unknown { fill: var(--muted); }
+/* The pawn is always the colour you play, outlined so it reads on its own tile:
+   a white pawn on the white tile, a black pawn on the black one. */
+.ef-pawn { stroke-width: 1.6px; stroke-linejoin: miter; paint-order: stroke; }
+.ef-pawn--white { fill: var(--white-piece); stroke: var(--black-piece); }
+.ef-pawn--black { fill: var(--black-piece); stroke: #ecebea; }
+.ef-pawn--unknown { fill: var(--muted); stroke: none; }
 .ef-hero__serial {
   position: relative;
   margin: 6px 0 0;

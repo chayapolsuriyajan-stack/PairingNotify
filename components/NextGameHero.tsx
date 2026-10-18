@@ -3,7 +3,7 @@
 import Link from '@/components/NavLink';
 import { useEffect, useState } from 'react';
 import type { FeedTournament } from '@/lib/client/types';
-import { countdown, hhmm, pad2, resultLabel, tidyName } from '@/lib/client/format';
+import { countdown, hhmm, pad2, points, resultLabel, tidyName } from '@/lib/client/format';
 import { Decode, Flicker, ScanLine } from './Motion';
 import { Brackets, Pawn, Ruler } from './Decor';
 
@@ -17,6 +17,7 @@ export function NextGameHero({
   start,
   isNew,
   totalRounds = null,
+  scores = null,
   label = 'Your next game',
 }: {
   tournament: FeedTournament;
@@ -24,6 +25,8 @@ export function NextGameHero({
   isNew: boolean;
   /** Rounds in the event, when known. Without it we can't say whether another round is coming. */
   totalRounds?: number | null;
+  /** Current points from the crosstable, when it has loaded. */
+  scores?: { me: number | null; opponent: number | null } | null;
   label?: string;
 }) {
   const game = tournament.latestPaired;
@@ -102,6 +105,18 @@ export function NextGameHero({
         <p className="ef-hero__facts">
           {[game.rating ? String(game.rating) : 'Unrated', game.federation].filter(Boolean).join(' · ')}
         </p>
+        {scores && (scores.me != null || scores.opponent != null) && (
+          <p className="ef-hero__score">
+            <span>
+              You <strong>{points(scores.me)}</strong>
+            </span>
+            <span aria-hidden="true">│</span>
+            <span>
+              Them <strong>{points(scores.opponent)}</strong>
+            </span>
+            <span className="ef-hero__scoreunit">PTS</span>
+          </p>
+        )}
       </div>
 
       <div className="ef-hero__foot">

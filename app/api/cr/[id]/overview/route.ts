@@ -38,7 +38,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
           format: detectFormat(cross, cross.details),
           details: cross.details,
           menu: cross.menu,
-          totalRounds: cross.details.rounds ?? cross.menu.totalRounds ?? null,
+          // Many events only state their length in the schedule.
+          totalRounds: cross.details.rounds ?? cross.menu.totalRounds ?? (schedule.length || null),
           rounds: cross.rounds,
           players: cross.players,
           schedule,
