@@ -7,6 +7,11 @@ who are tired of pinch-zooming ASP.NET tables between rounds.
   plus a countdown to the round.
 - **Lock-screen alert** about 1–2 minutes after a pairing is published, for you and for
   anyone you follow (teammates, students, your kid).
+- **Result alerts** after each game, with a line to match (short lines, famous players'
+  quotes, or your own words; on/off per win, draw and loss), and a **round reminder**
+  15, 30 or 60 minutes before a scheduled round. Settings → *Results & reminders*.
+- **Invite friends**: each invite code makes a separate account (see
+  [Inviting friends](#inviting-friends)).
 - **Tournament pages that work on a phone**: round pairings with your board pinned,
   standings with your row pinned, your card, and the event details.
 - **Opponent scout**: their card in this event, their FIDE profile, and any earlier

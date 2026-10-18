@@ -9,6 +9,7 @@ import { currentSubscription, isIos, isStandalone, pushSupport, subscribe, unsub
 import { Screen } from '@/components/Screen';
 import { Segmented } from '@/components/Segmented';
 import { InvitesPanel } from '@/components/InvitesPanel';
+import { AlertsPanel } from '@/components/AlertsPanel';
 import { toast } from '@/components/Motion';
 import {
   DEFAULT_HAPTICS,
@@ -152,6 +153,8 @@ export default function SettingsPage() {
             )}
             {message && <p className="ef-help">{message}</p>}
           </Panel>
+
+          <AlertsPanel />
 
           {ios && push !== 'needs-install' && (
             <Panel code="03 / INSTALL" title="Add to Home Screen">

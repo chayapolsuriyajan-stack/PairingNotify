@@ -531,3 +531,23 @@ select.ef-input option { background: var(--bg); color: var(--text); }
 .ef-invite__actions .ef-link { min-height: 44px; }
 .ef-invite__form { margin-bottom: 12px; }
 .ef-link--danger { color: var(--alert); }
+
+/* ---------- Result & reminder settings ---------- */
+.ef-checks { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.ef-alert-examples {
+  margin: 10px 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.ef-alert-examples__tag {
+  display: inline-block;
+  min-width: 44px;
+  font: 600 11px var(--font-mono-stack);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+}
