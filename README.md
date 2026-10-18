@@ -157,6 +157,8 @@ chess-results is a small, volunteer-run service with no API. This app:
   event that moved today, and only keeps events that are current;
 - reads the start number straight out of the search result's own link, so a discovered
   event costs one request instead of two;
+- deletes an event from the app (pinned or found) once nothing has changed on it for two
+  weeks and no scheduled round is left, so it stops being polled at all;
 - serves browsing through a CDN-cached proxy, so everyone viewing the same standings
   costs chess-results one request per minute.
 
