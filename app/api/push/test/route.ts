@@ -1,14 +1,13 @@
-import { isAuthed, unauthorized } from '@/server/auth';
-import { getStore } from '@/lib/store/index.js';
+import { unauthorized, userStore } from '@/server/auth';
 import { sendPush, vapidFromEnv } from '@/lib/notify.js';
 
 /** Send a sample alert to every registered device. */
 export async function POST() {
-  if (!(await isAuthed())) return unauthorized();
+  const store = await userStore();
+  if (!store) return unauthorized();
   const vapid = vapidFromEnv();
   if (!vapid) return Response.json({ error: 'VAPID keys are not configured on the server.' }, { status: 503 });
 
-  const store = getStore();
   const subs = await store.listSubscriptions();
   const result = await sendPush(
     subs,

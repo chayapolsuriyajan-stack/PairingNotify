@@ -88,6 +88,8 @@ export interface Config {
   vapidPublicKey: string | null;
   passcodeRequired: boolean;
   authed: boolean;
+  /** Owner = signed in with APP_PASSCODE; user = joined by invite. */
+  role: 'owner' | 'user' | null;
   storage: 'redis' | 'memory';
   cronConfigured: boolean;
 }

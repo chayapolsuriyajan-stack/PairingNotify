@@ -52,6 +52,7 @@ Settings → Environment Variables:
 | `VAPID_SUBJECT` | `mailto:you@example.com` |
 | `CRON_SECRET` | any long random string (`openssl rand -hex 32`) |
 | `APP_PASSCODE` | a long passcode, entered once per device |
+| `SESSION_SECRET` | optional: signs session cookies; if unset, `APP_PASSCODE` is used (changing it signs everyone out) |
 
 Redeploy after setting them.
 
@@ -80,6 +81,16 @@ old 10–25 minutes to 1–2 minutes.
    (`Surname, Given`) or your FIDE ID, and optionally the tournament link. Tick
    *This is me*.
 3. **Settings** → *Enable alerts* → *Send test alert*.
+
+### Inviting friends
+
+Settings → **Invite people** → *Generate invite* makes a code like `K7QM-3XTP` and opens
+your phone's share sheet. Whoever enters it on the sign-in screen gets **their own
+account**: their own follows, devices and alerts, which you don't see (and they don't
+see yours). The code then stays their sign-in code for their other devices; they can
+swap it in Settings, unused codes expire after a week, and you can remove an account
+(and everything in it) from the same panel. Everyone shares one poller and one page
+cache, so two people following the same player cost chess-results one request.
 
 A new player's existing rounds are recorded silently. You only get alerts for rounds
 paired after you start following, never a burst of old ones.

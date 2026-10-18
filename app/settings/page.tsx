@@ -8,6 +8,7 @@ import { useAccount } from '@/components/useAccount';
 import { currentSubscription, isIos, isStandalone, pushSupport, subscribe, unsubscribe } from '@/components/push';
 import { Screen } from '@/components/Screen';
 import { Segmented } from '@/components/Segmented';
+import { InvitesPanel } from '@/components/InvitesPanel';
 import { toast } from '@/components/Motion';
 import {
   DEFAULT_HAPTICS,
@@ -162,13 +163,17 @@ export default function SettingsPage() {
 
           <HapticsPanel />
 
-          <Panel code="05 / ACCESS" title="Passcode">
-            {config.data.passcodeRequired ? (
+          <InvitesPanel />
+
+          <Panel code="06 / ACCESS" title={config.data.role === 'user' ? 'This device' : 'Passcode'}>
+            {config.data.passcodeRequired || config.data.role === 'user' ? (
               <>
-                <p className="ef-help">This device is unlocked. Sign out to lock your follows and alerts again.</p>
+                <p className="ef-help">This device is signed in. Sign out to lock your follows and alerts again.</p>
                 <Button
                   variant="secondary"
                   onClick={async () => {
+                    // Alerts belong to the account: a signed-out phone must not keep getting them.
+                    await unsubscribe().catch(() => {});
                     await fetch('/api/session', { method: 'DELETE' });
                     config.reload();
                   }}
@@ -184,7 +189,7 @@ export default function SettingsPage() {
             )}
           </Panel>
 
-          <Panel code="06 / SYSTEM" title="Server" serial={`STORE ${config.data.storage.toUpperCase()}`}>
+          {config.data.role !== 'user' && <Panel code="08 / SYSTEM" title="Server" serial={`STORE ${config.data.storage.toUpperCase()}`}>
             <dl className="ef-spec">
               <div className="ef-spec__item ef-spec__item--wide">
                 <dt>Storage</dt>
@@ -201,7 +206,7 @@ export default function SettingsPage() {
                 <dd>{vapid ? 'VAPID keys set' : 'VAPID keys missing'}</dd>
               </div>
             </dl>
-          </Panel>
+          </Panel>}
         </>
       )}
     </Screen>

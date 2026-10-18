@@ -1,16 +1,20 @@
-import { runPoll } from '@/lib/poll.js';
-import { getStore } from '@/lib/store/index.js';
+import { runPollForAll } from '@/lib/poll.js';
+import { listUsers } from '@/lib/accounts.js';
+import { getRawStore, getStore, OWNER } from '@/lib/store/index.js';
 
 /**
  * Run one poll unless another is already running (cron tick vs. a refresh after
  * adding a follow). Two concurrent polls could both see a new round and push it twice.
+ * Covers every account: the owner and everyone they invited.
  */
 export async function pollOnce(options: { dryRun?: boolean } = {}) {
-  const store = getStore();
-  if (!(await store.lock('poll', 55_000))) return { skipped: 'another poll is running' };
+  const owner = getStore();
+  if (!(await owner.lock('poll', 55_000))) return { skipped: 'another poll is running' };
   try {
-    return await runPoll({ store, dryRun: Boolean(options.dryRun) });
+    const users: { id: string }[] = await listUsers(getRawStore());
+    const stores = [OWNER, ...users.map((u) => u.id)].map((id) => getStore(id));
+    return await runPollForAll({ stores, dryRun: Boolean(options.dryRun) });
   } finally {
-    await store.unlock('poll');
+    await owner.unlock('poll');
   }
 }

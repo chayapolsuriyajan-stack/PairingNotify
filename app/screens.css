@@ -516,3 +516,18 @@ select.ef-input option { background: var(--bg); color: var(--text); }
    44px tap height, so this line is only that tall when there is a link to tap. */
 .ef-pgn__meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .ef-pgn__meta .ef-pgn__from { margin: 4px 0 0; }
+
+/* ---------- Invites / sign-in codes ---------- */
+.ef-code {
+  margin: 4px 0 12px;
+  font: 700 28px/1.1 var(--font-mono-stack);
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  user-select: all;
+}
+.ef-code--inline { margin: 0; font-size: 17px; }
+.ef-invite { align-items: center; }
+.ef-invite__actions { display: flex; gap: 14px; flex: none; }
+.ef-invite__actions .ef-link { min-height: 44px; }
+.ef-invite__form { margin-bottom: 12px; }
+.ef-link--danger { color: var(--alert); }
