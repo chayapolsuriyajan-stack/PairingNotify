@@ -12,3 +12,5 @@ lib/__fixtures__/captured/
 .vercel
 .env*
 !.env.example
+
+.cache/

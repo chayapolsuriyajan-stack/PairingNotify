@@ -1,8 +1,9 @@
 import { cachedJson, errorJson, memo } from '@/server/http';
 import { isTournamentId } from '@/lib/ref.js';
-import { fetchCrosstable, fetchSchedule } from '@/lib/chessresults/pages.js';
+import { fetchCrosstable, fetchPairings, fetchSchedule } from '@/lib/chessresults/pages.js';
 import { fetchStartingRank } from '@/lib/chessresults/tournament.js';
 import { detectFormat } from '@/lib/predict/forecast.js';
+import { liveRound, mergeLiveResults } from '@/lib/predict/live.js';
 
 /**
  * Everything the tournament screens and the forecast need, in two requests: the
@@ -30,7 +31,19 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
       // An empty crosstable (no round paired yet) is the same as none at all.
       if (crossResult.status === 'fulfilled' && crossResult.value.players.length > 0) {
-        const cross = crossResult.value;
+        let cross = crossResult.value;
+        // While a round is on, fold in its pairings page, which gets results (and a
+        // newly paired round) before the crosstable does. Shares the Pairings tab's
+        // cache entry, so it costs chess-results nothing extra when both are open.
+        const live = liveRound(cross, cross.menu);
+        if (live) {
+          try {
+            const { games } = await memo(`pairings:${id}:${live}`, 60_000, () => fetchPairings(id, live));
+            cross = { ...cross, ...mergeLiveResults(cross, live, games) };
+          } catch {
+            // The crosstable alone is still a good answer.
+          }
+        }
         return {
           id,
           title: cross.title,

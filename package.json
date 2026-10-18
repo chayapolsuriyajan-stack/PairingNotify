@@ -13,7 +13,8 @@
     "start": "next start",
     "capture": "node scripts/capture-fixtures.js",
     "test": "node --test lib/__tests__/*.test.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "bench": "node scripts/benchmark-forecast.js"
   },
   "dependencies": {
     "@upstash/redis": "^1.38.4",

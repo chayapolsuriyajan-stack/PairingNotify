@@ -115,13 +115,24 @@ The forecast works in three steps:
 
 Round robins are read straight from the Berger tables.
 
-Measured on real events (checked 2026-09-19):
+Measured with `npm run bench` on 52 finished Swiss events, 270 rounds (2026-10-18):
 
-| Test | Exact opponent | Opponent in top 3 | Colour |
+| Event size | Pairing, all results in | Top 3, your game over | Top 3, nothing finished yet |
 |---|---|---|---|
-| Replaying a 65-player rapid (rounds 2–5) | 66% | — | — |
-| Replaying a 31-player blitz with many dropouts (rounds 2–9) | 45% | — | — |
-| **Live**: predicted mid-round-2, checked against the real round 3 (18 players) | 33% | 50% | 89% |
+| Small (under 20) | 78% | 77% | 75% |
+| Medium (20–59) | 70% | 57% | 47% |
+| Large (60+) | 75% | 39% | 30% |
+| **All** | **74%** | **54%** | **46%** |
+
+- *Pairing, all results in*: once the round's results are all in, the share of players
+  whose real opponent the pairer predicted exactly (colour right on 99.9% of those).
+- *Top 3*: while the round before is still being played, how often the real opponent is
+  in the forecast's top 3. It climbs during the round as results come in.
+
+The forecast reads the live round's pairings page as well as the crosstable, because
+arbiters enter results there first. `npm run bench` keeps the downloaded crosstables in
+`.cache/bench/`, so you can re-run it for free after changing the model, and
+`--json out.json` writes the numbers so you can compare before and after.
 
 Each event page shows the model's hit rate on that event's own earlier rounds, so you
 can see how much to trust it there.
