@@ -5,7 +5,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Screen } from '@/components/Screen';
 import { parseChessResultsRows, rowsFromCard } from '@/lib/pgn/rows.js';
 import { parseTournamentRef } from '@/lib/ref.js';
-import { SCORES, missingFields, planGames, renameStudy } from '@/lib/pgn/study.js';
+import { SCORES, missingFields, planGames, renameStudy, splitGames } from '@/lib/pgn/study.js';
+import { studyError, studyExportUrl, studyIdFrom } from '@/lib/pgn/lichess.js';
 import { pad2, tidyName } from '@/lib/client/format';
 import { DEFAULT_PGN_PREFS, loadPgnPrefs, savePgnPrefs, type NameOrder, type PgnPrefs } from '@/lib/client/pgnPrefs';
 import type { PlayerResponse } from '@/lib/client/types';
@@ -53,6 +54,8 @@ export function PgnRenamer() {
   const { feed, needsLogin } = useAccount({ refreshMs: 0 });
   const [pgn, setPgn] = useState('');
   const [rowsText, setRowsText] = useState('');
+  const [studyLink, setStudyLink] = useState('');
+  const [studyStatus, setStudyStatus] = useState<{ loading?: boolean; error?: string | null } | null>(null);
   // Where the opponents come from. Until you choose, it is a tournament when there is
   // one to pick from (you follow someone), and a paste otherwise.
   const [mode, setMode] = useState<RowsMode | null>(null);
@@ -147,6 +150,35 @@ export function PgnRenamer() {
     setEdits({});
   }
 
+  /** Lichess first (no hop through our server), our relay if the browser can't reach it. */
+  async function loadStudy() {
+    const id = studyIdFrom(studyLink);
+    if (!id) {
+      setStudyStatus({ error: 'Paste a lichess.org/study/… link.' });
+      return;
+    }
+    setStudyStatus({ loading: true });
+    let text: string | null = null;
+    let error: string | null = null;
+    try {
+      const direct = await fetch(studyExportUrl(id), { headers: { Accept: 'application/x-chess-pgn' } });
+      if (direct.ok) text = await direct.text();
+      else error = studyError(direct.status);
+    } catch {
+      const relayed = await fetch(`/api/lichess/study/${id}`).catch(() => null);
+      if (relayed?.ok) text = await relayed.text();
+      else error = (await relayed?.json().catch(() => null))?.error ?? 'Could not reach Lichess.';
+    }
+    if (text == null) {
+      setStudyStatus({ error });
+      return;
+    }
+    changePgn(text);
+    const count = splitGames(text).games.length;
+    setStudyStatus(null);
+    toast(`Study loaded · ${count} chapter${count === 1 ? '' : 's'}`, 'ok');
+  }
+
   async function loadFile(file: File | undefined) {
     if (!file) return;
     try {
@@ -200,8 +232,37 @@ export function PgnRenamer() {
 
       <Panel code="01 / STUDY" title="Lichess study PGN" serial="AIC-PN-PGN">
         <div className="ef-form">
+          <form
+            className="ef-study-link"
+            onSubmit={(e) => {
+              e.preventDefault();
+              loadStudy();
+            }}
+          >
+            <label className="ef-field">
+              <span className="ef-field__label">Study link</span>
+              <span className="ef-focus">
+                <input
+                  className="ef-input"
+                  type="url"
+                  inputMode="url"
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="https://lichess.org/study/…"
+                  value={studyLink}
+                  onChange={(e) => setStudyLink(e.target.value)}
+                />
+              </span>
+            </label>
+            <Button type="submit" disabled={studyStatus?.loading || !studyLink.trim()}>
+              {studyStatus?.loading ? 'Loading' : 'Load'}
+            </Button>
+          </form>
+          {studyStatus?.error && <p className="ef-error">{studyStatus.error}</p>}
+          <p className="ef-help">Public and unlisted studies load straight from Lichess. For a private one, export the PGN and paste it below.</p>
+
           <label className="ef-field">
-            <span className="ef-field__label">Paste the PGN you exported from the study</span>
+            <span className="ef-field__label">…or paste the PGN you exported from the study</span>
             <span className="ef-focus">
               <textarea
                 className="ef-input ef-textarea"

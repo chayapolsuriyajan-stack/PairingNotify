@@ -39,6 +39,8 @@ async function save(name, html) {
   console.log(`  saved ${name} (${html.length} bytes)`);
 }
 
+let failures = 0;
+
 /** Try a parser and report clearly, without aborting the rest of the capture. */
 function attempt(label, fn) {
   try {
@@ -47,6 +49,7 @@ function attempt(label, fn) {
     return result;
   } catch (error) {
     console.error(`  PARSE FAIL ${label}: ${error.message}`);
+    failures++;
     return null;
   }
 }
@@ -113,6 +116,11 @@ async function main() {
     '\nDone. Download the artifact, copy the HTML into lib/__fixtures__/, and ' +
       'fix any PARSE FAIL above before trusting the app.',
   );
+  // A failed parser fails the run, so the weekly scheduled check emails the owner.
+  if (failures) {
+    console.error(`\n${failures} parser(s) failed against today's chess-results markup.`);
+    process.exit(1);
+  }
 }
 
 main().catch((error) => {

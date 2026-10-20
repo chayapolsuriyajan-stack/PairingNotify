@@ -56,6 +56,8 @@ export interface Follow {
 export interface FeedResponse {
   feed: Feed;
   follows: Follow[];
+  /** The poller's heartbeat (lib/health.js). */
+  poller?: { lastRunAt: number | null; lastOkAt: number | null; lastError: string | null };
 }
 
 /** One row of a chess-results player search (GET /api/search). */
@@ -168,6 +170,8 @@ export interface PlayerResponse {
   header: {
     name?: string;
     rating?: number | null;
+    /** The FIDE rating, when the card lists a national one as `rating`. */
+    ratingInternational?: number | null;
     performance?: number | null;
     federation?: string;
     fideId?: string;

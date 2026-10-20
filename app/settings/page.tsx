@@ -27,7 +27,7 @@ type PushState = 'loading' | 'on' | 'off' | 'needs-install' | 'unsupported' | 'b
 
 /** SETTINGS: notifications for this device, access, and server status. */
 export default function SettingsPage() {
-  const { config, needsLogin, unlock } = useAccount({ refreshMs: 0 });
+  const { config, feed, needsLogin, unlock } = useAccount({ refreshMs: 0 });
   const [push, setPush] = useState<PushState>('loading');
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -202,7 +202,12 @@ export default function SettingsPage() {
               </div>
               <div className="ef-spec__item ef-spec__item--wide">
                 <dt>Poller</dt>
-                <dd>{config.data.cronConfigured ? 'CRON_SECRET set: cron-job.org can call /api/poll' : 'CRON_SECRET missing: nothing polls in production'}</dd>
+                <dd>
+                  {config.data.cronConfigured ? 'CRON_SECRET set: cron-job.org can call /api/poll' : 'CRON_SECRET missing: nothing polls in production'}
+                  {feed.data?.poller?.lastRunAt
+                    ? ` · last check ${new Date(feed.data.poller.lastRunAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}`
+                    : ' · no check yet'}
+                </dd>
               </div>
               <div className="ef-spec__item ef-spec__item--wide">
                 <dt>Alerts</dt>

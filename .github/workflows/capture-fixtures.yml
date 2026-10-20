@@ -1,10 +1,13 @@
 name: Capture chess-results fixtures
 
-# Manual. Downloads raw chess-results HTML from a runner (which, unlike some dev
-# sandboxes, can reach the site) and reports whether each parser still works against
-# today's markup. Run this first, and any time the poller starts failing to parse.
+# Downloads raw chess-results HTML from a runner and reports whether each parser still
+# works against today's markup. Runs every Monday on a known event, so a markup change
+# shows up as a failed run (GitHub emails you) before it breaks a tournament weekend.
+# Run it by hand with any event, too, whenever the poller starts failing to parse.
 
 on:
+  schedule:
+    - cron: '0 3 * * 1' # Mondays 03:00 UTC
   workflow_dispatch:
     inputs:
       tournament:
@@ -16,6 +19,11 @@ on:
       snr:
         description: 'Start number, skips the name lookup (optional)'
         required: false
+
+env:
+  # The scheduled run's event (a finished open that stays online).
+  DEFAULT_TOURNAMENT: '1486488'
+  DEFAULT_NAME: 'Habla, Jony'
 
 jobs:
   capture:
@@ -29,11 +37,15 @@ jobs:
       - run: npm ci
 
       - name: Capture
+        env:
+          TOURNAMENT: ${{ inputs.tournament || env.DEFAULT_TOURNAMENT }}
+          NAME: ${{ inputs.tournament && inputs.name || (!inputs.tournament && env.DEFAULT_NAME) || '' }}
+          SNR: ${{ inputs.snr || '' }}
         run: |
-          node scripts/capture-fixtures.js \
-            --tournament "${{ inputs.tournament }}" \
-            ${{ inputs.name && format('--name "{0}"', inputs.name) || '' }} \
-            ${{ inputs.snr && format('--snr "{0}"', inputs.snr) || '' }}
+          args=(--tournament "$TOURNAMENT")
+          [ -n "$NAME" ] && args+=(--name "$NAME")
+          [ -n "$SNR" ] && args+=(--snr "$SNR")
+          node scripts/capture-fixtures.js "${args[@]}"
 
       - uses: actions/upload-artifact@v4
         if: always()

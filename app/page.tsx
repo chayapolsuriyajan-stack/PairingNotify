@@ -6,6 +6,7 @@ import { Button, HazardBanner, Panel, Row, RowList, SectionHeader } from '@/comp
 import { NextGameHero } from '@/components/NextGameHero';
 import { ForecastCard } from '@/components/ForecastCard';
 import { PasscodeGate } from '@/components/PasscodeGate';
+import { PollerBanner } from '@/components/PollerBanner';
 import { SyncReadout, TopBar } from '@/components/TopBar';
 import { markSeen, useAccount } from '@/components/useAccount';
 import { useJson } from '@/components/useJson';
@@ -95,6 +96,8 @@ export default function NowPage() {
           </p>
         </Panel>
       )}
+
+      <PollerBanner poller={feed.data?.poller} />
 
       {degraded && (
         <HazardBanner label="Auto-discovery degraded">

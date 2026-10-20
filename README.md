@@ -16,11 +16,14 @@ who are tired of pinch-zooming ASP.NET tables between rounds.
   standings with your row pinned, your card, and the event details.
 - **Opponent scout**: their card in this event, their FIDE profile, and any earlier
   games you've played against them.
+- **Rating change per game** on every card (FIDE formula), adding up to the official
+  total once chess-results publishes it.
 - **Next-opponent forecast** while your round is still being played, including
   "if I win / draw / lose" (see [How good is the forecast?](#how-good-is-the-forecast)).
 - **Works in a hall with bad Wi-Fi**: the last data you loaded stays available offline.
 - **Lichess study renamer** (Events tab → Tools, or `/pgn`): rewrites every chapter of a
-  study export to "opponent + score" before you import it into a new study. See
+  study to "opponent + score" before you import it into a new study: paste the study
+  link, or its exported PGN. See
   [Renaming a Lichess study](#renaming-a-lichess-study).
 
 The look follows [`design.md`](design.md): an industrial "field terminal" style with
@@ -144,7 +147,8 @@ can see how much to trust it there.
 A study export names each chapter in its `[Event]` tag ("Study: Chapter"). The renamer
 (`/pgn`, linked from the Events tab) rewrites that tag to `<Opponent> <Score>`, with the
 score from **your** side (`1-0` = you won), so the chapters read well after you import the
-PGN into a new study. It runs entirely in your browser: nothing is uploaded.
+PGN into a new study. Paste the study link (public or unlisted studies load straight from
+Lichess) or the exported PGN; the renaming itself runs in your browser.
 
 Where the opponent and score come from, per field, first match wins:
 
@@ -204,7 +208,7 @@ captured pages.
 | "Auto-discovery degraded" banner | `lib/chessresults/search.js`. Tournaments added by link keep working. |
 | `No table found with columns …` | A column heading changed. Add the new heading to the alias list in the matching parser. |
 | No alerts, but data updates | Settings → *Send test alert*. Dead devices (HTTP 404/410) are removed automatically; re-enable alerts on that phone. |
-| Nothing updates at all | Check cron-job.org's history for `/api/poll` (401 means `CRON_SECRET` doesn't match). |
+| Nothing updates at all / *Alerts paused* banner | The poller stopped: check cron-job.org's history for `/api/poll` (401 means `CRON_SECRET` doesn't match). You also get an *Alerts paused* push after 10 quiet minutes, and *Alerts are back on* once it runs again; Vercel checks once a day too (`/api/watchdog`). |
 | Wrong player matched, or a player not found | Add the FIDE ID on the Follow tab: the search uses it first and falls back to the name. |
 | Notification badge is a blank white square | Android fills the badge's alpha channel with one colour, so it must be a transparent monochrome shape: `node scripts/make-badge.mjs`. |
 
@@ -215,8 +219,9 @@ npm run capture -- --tournament 1486488 --name "Surname, Given"
 ```
 
 It downloads each page type, runs every parser on it, prints `PARSE OK` / `PARSE FAIL`,
-and saves the HTML in `lib/__fixtures__/captured/`. It also runs as the manual *Capture
-chess-results fixtures* GitHub Action.
+and saves the HTML in `lib/__fixtures__/captured/`. The *Capture chess-results fixtures*
+GitHub Action runs it every Monday (a failed parser fails the run, and GitHub emails you),
+and you can run it by hand on any event.
 
 ---
 

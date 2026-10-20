@@ -551,3 +551,19 @@ select.ef-input option { background: var(--bg); color: var(--text); }
   text-transform: uppercase;
   color: var(--text);
 }
+
+/* ---------- Rating change per game ---------- */
+.ef-rtgdelta {
+  display: block;
+  margin-top: 2px;
+  text-align: right;
+  font: 500 11px var(--font-mono-stack);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.ef-rtgdelta--up { color: var(--ok); }
+.ef-rtgdelta--down { color: var(--alert); }
+
+/* ---------- Study link (renamer) ---------- */
+.ef-study-link { display: flex; gap: 8px; align-items: flex-end; }
+.ef-study-link .ef-field { flex: 1; min-width: 0; margin: 0; }
