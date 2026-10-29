@@ -151,8 +151,8 @@ export function PgnRenamer() {
   }
 
   /** Lichess first (no hop through our server), our relay if the browser can't reach it. */
-  async function loadStudy() {
-    const id = studyIdFrom(studyLink);
+  async function loadStudy(link: string = studyLink) {
+    const id = studyIdFrom(link);
     if (!id) {
       setStudyStatus({ error: 'Paste a lichess.org/study/… link.' });
       return;
@@ -271,7 +271,18 @@ export function PgnRenamer() {
                 autoCapitalize="off"
                 placeholder={'[Event "Lumpoon 2026: Viriya 1-0"]\n[Result "*"]\n…'}
                 value={pgn}
-                onChange={(e) => changePgn(e.target.value)}
+                onChange={(e) => {
+                  // A study link pasted here instead of the link box: load it, don't
+                  // treat the URL as PGN (which reads as "0 games").
+                  const text = e.target.value;
+                  if (!text.includes('[') && studyIdFrom(text)) {
+                    setStudyLink(text.trim());
+                    changePgn('');
+                    loadStudy(text);
+                    return;
+                  }
+                  changePgn(text);
+                }}
               />
             </span>
           </label>
@@ -427,6 +438,11 @@ export function PgnRenamer() {
                 <p className="ef-help">
                   {cardRows.length} round{cardRows.length === 1 ? '' : 's'} read for {tidyName(card.data.header.name)}
                   {card.data.header.points != null && ` · ${card.data.header.points} pts`}
+                </p>
+              )}
+              {rows.length > 0 && games === 0 && (
+                <p className="ef-help ef-help--warn">
+                  Now load your study above (its link or PGN) and these rounds are matched to its chapters in order.
                 </p>
               )}
             </>
