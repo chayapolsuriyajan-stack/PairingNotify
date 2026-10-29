@@ -11,11 +11,14 @@
  */
 
 export type NameOrder = 'first-last' | 'last-first';
+/** points: what you scored (1, 0, 1/2); classic: the PGN form (1-0 = you won). */
+export type ScoreStyle = 'points' | 'classic';
 
 export interface PgnPrefs {
   username: string;
   template: string;
   nameOrder: NameOrder;
+  scoreStyle: ScoreStyle;
   updateChapterName: boolean;
 }
 
@@ -23,6 +26,7 @@ export const DEFAULT_PGN_PREFS: PgnPrefs = {
   username: '',
   template: '{opponent} {score}',
   nameOrder: 'first-last',
+  scoreStyle: 'points',
   updateChapterName: true,
 };
 
@@ -36,6 +40,7 @@ export function loadPgnPrefs(): PgnPrefs {
       // An empty template would name every chapter "": fall back rather than trust it.
       template: typeof raw?.template === 'string' && raw.template.trim() ? raw.template : DEFAULT_PGN_PREFS.template,
       nameOrder: raw?.nameOrder === 'last-first' ? 'last-first' : 'first-last',
+      scoreStyle: raw?.scoreStyle === 'classic' ? 'classic' : 'points',
       updateChapterName: typeof raw?.updateChapterName === 'boolean' ? raw.updateChapterName : true,
     };
   } catch {

@@ -17,7 +17,7 @@ import {
   type LichessAuth,
 } from '@/lib/client/lichess';
 import { pad2, tidyName } from '@/lib/client/format';
-import { DEFAULT_PGN_PREFS, loadPgnPrefs, savePgnPrefs, type NameOrder, type PgnPrefs } from '@/lib/client/pgnPrefs';
+import { DEFAULT_PGN_PREFS, loadPgnPrefs, savePgnPrefs, type NameOrder, type PgnPrefs, type ScoreStyle } from '@/lib/client/pgnPrefs';
 import type { PlayerResponse } from '@/lib/client/types';
 import { Button, Chip, Panel, SectionHeader } from './ui';
 import { Loading, toast } from './Motion';
@@ -126,7 +126,14 @@ export function PgnRenamer() {
     if (!confirm(`Rename the ${games} chapters of this study on Lichess?\n\nRenamed copies are added, then the old chapters are deleted. Moves, comments and variations are kept.`)) return;
     setSave({ done: 0, total: games });
     try {
-      const { studyId, replaced } = await renameChaptersInPlace(lichess, result.text, (done, total) => setSave({ done, total }));
+      // Lichess names a chapter from [ChapterName], so it is always rewritten here, whatever
+      // the download setting says.
+      const forLichess = renameStudy(pgn, entries, {
+        template: prefs.template,
+        updateChapterName: true,
+        scoreStyle: prefs.scoreStyle,
+      }).text;
+      const { studyId, replaced } = await renameChaptersInPlace(lichess, forLichess, (done, total) => setSave({ done, total }));
       setSave({ done: replaced, total: replaced, finished: `https://lichess.org/study/${studyId}` });
       toast(`${replaced} chapters renamed on Lichess`, 'ok');
     } catch (error) {
@@ -182,8 +189,13 @@ export function PgnRenamer() {
   );
   const entries = useMemo(() => plan.entries.map((entry) => ({ ...entry, ...edits[entry.index] })), [plan, edits]);
   const result = useMemo(
-    () => renameStudy(pgn, entries, { template: prefs.template, updateChapterName: prefs.updateChapterName }),
-    [pgn, entries, prefs.template, prefs.updateChapterName],
+    () =>
+      renameStudy(pgn, entries, {
+        template: prefs.template,
+        updateChapterName: prefs.updateChapterName,
+        scoreStyle: prefs.scoreStyle,
+      }),
+    [pgn, entries, prefs.template, prefs.updateChapterName, prefs.scoreStyle],
   );
 
   /**
@@ -582,13 +594,29 @@ export function PgnRenamer() {
               ]}
             />
           </div>
+          <div className="ef-field">
+            <span className="ef-field__label">Score in the name (yours)</span>
+            <Segmented<ScoreStyle>
+              label="Score in the name"
+              value={prefs.scoreStyle}
+              onChange={(value) => setPref('scoreStyle', value)}
+              options={[
+                { value: 'points', label: '1 · 0 · 1/2' },
+                { value: 'classic', label: '1-0 · 0-1' },
+              ]}
+            />
+          </div>
+          <p className="ef-help">
+            [Result &quot;*&quot;] is filled in with the real result when your colour is known (from your chess-results
+            card, or the White/Black tags), so Lichess shows it next to each chapter.
+          </p>
           <label className="ef-check">
             <input
               type="checkbox"
               checked={prefs.updateChapterName}
               onChange={(e) => setPref('updateChapterName', e.target.checked)}
             />
-            <span>Also update [ChapterName] to match (Lichess may read it on import)</span>
+            <span>Also update [ChapterName] in the copy/download (Lichess names chapters from it; renaming on Lichess always does)</span>
           </label>
         </div>
       </Panel>
