@@ -150,6 +150,15 @@ score from **your** side (`1-0` = you won), so the chapters read well after you 
 PGN into a new study. Paste the study link (public or unlisted studies load straight from
 Lichess) or the exported PGN; the renaming itself runs in your browser.
 
+**Renaming the chapters on Lichess itself.** Load the study by its link, sign in with
+Lichess (panel *06 / LICHESS*), and press *Rename N chapters*: the chapters in your study
+get the new names, same study and link. Lichess has no "rename chapter" call, so the app
+adds renamed copies (Lichess names them from `[ChapterName]`) and then deletes the
+originals. Moves, comments and variations are kept; chapter-only settings (like a fixed
+board orientation) are not. Copies go in before anything is deleted, so an error part-way
+leaves extra chapters, never missing ones. The Lichess sign-in (OAuth with PKCE, scopes
+`study:read study:write`) stays on your device; this app's server never sees it.
+
 Where the opponent and score come from, per field, first match wins:
 
 1. `[White]`/`[Black]` when one of them is your Lichess username (a `*` result is ignored);

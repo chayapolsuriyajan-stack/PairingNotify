@@ -6,7 +6,16 @@ import { Screen } from '@/components/Screen';
 import { parseChessResultsRows, rowsFromCard } from '@/lib/pgn/rows.js';
 import { parseTournamentRef } from '@/lib/ref.js';
 import { SCORES, missingFields, planGames, renameStudy, splitGames } from '@/lib/pgn/study.js';
-import { studyError, studyExportUrl, studyIdFrom } from '@/lib/pgn/lichess.js';
+import { chapterRefs, studyError, studyIdFrom } from '@/lib/pgn/lichess.js';
+import {
+  finishSignIn,
+  fetchStudy,
+  getAuth,
+  renameChaptersInPlace,
+  signOut,
+  startSignIn,
+  type LichessAuth,
+} from '@/lib/client/lichess';
 import { pad2, tidyName } from '@/lib/client/format';
 import { DEFAULT_PGN_PREFS, loadPgnPrefs, savePgnPrefs, type NameOrder, type PgnPrefs } from '@/lib/client/pgnPrefs';
 import type { PlayerResponse } from '@/lib/client/types';
@@ -21,6 +30,17 @@ type Edit = { opponent?: string; score?: string };
 type RowsMode = 'tournament' | 'paste';
 /** A player's card in one tournament: where "auto fill" reads the opponents from. */
 type Source = { id: string; startNo: number };
+/** What is on screen, kept across the trip to Lichess and back when signing in. */
+type Snapshot = {
+  pgn: string;
+  studyLink: string;
+  mode: RowsMode | null;
+  pick: string;
+  otherLink: string;
+  otherStart: string;
+  rowsText: string;
+  edits: Record<number, Edit>;
+};
 
 /** Where a pre-filled value came from, in the words the screen uses. */
 const SOURCE: Record<string, string> = {
@@ -70,10 +90,49 @@ export function PgnRenamer() {
   const fileInput = useRef<HTMLInputElement>(null);
   const outputBox = useRef<HTMLTextAreaElement>(null);
 
+  const [lichess, setLichess] = useState<LichessAuth | null>(null);
+  const [save, setSave] = useState<{ done: number; total: number; error?: string; finished?: string } | null>(null);
+
   useEffect(() => {
     setPrefs(loadPgnPrefs());
     setPrefsLoaded(true);
+    setLichess(getAuth());
+    // Back from signing in with Lichess: put the screen back as it was.
+    finishSignIn().then((back) => {
+      if (!back) return;
+      const s = back.snapshot as Snapshot | null;
+      if (s) {
+        setPgn(s.pgn);
+        setStudyLink(s.studyLink);
+        setMode(s.mode);
+        setPick(s.pick);
+        setOtherLink(s.otherLink);
+        setOtherStart(s.otherStart);
+        setRowsText(s.rowsText);
+        setEdits(s.edits);
+      }
+      if (back.auth) {
+        setLichess(back.auth);
+        toast(`Signed in to Lichess${back.auth.username ? ` as ${back.auth.username}` : ''}`, 'ok');
+      } else if (back.error) toast(back.error, 'alert');
+    });
   }, []);
+
+  const signIn = () =>
+    startSignIn({ pgn, studyLink, mode, pick, otherLink, otherStart, rowsText, edits } satisfies Snapshot);
+
+  async function renameOnLichess() {
+    if (!lichess) return;
+    if (!confirm(`Rename the ${games} chapters of this study on Lichess?\n\nRenamed copies are added, then the old chapters are deleted. Moves, comments and variations are kept.`)) return;
+    setSave({ done: 0, total: games });
+    try {
+      const { studyId, replaced } = await renameChaptersInPlace(lichess, result.text, (done, total) => setSave({ done, total }));
+      setSave({ done: replaced, total: replaced, finished: `https://lichess.org/study/${studyId}` });
+      toast(`${replaced} chapters renamed on Lichess`, 'ok');
+    } catch (error) {
+      setSave((s) => ({ done: s?.done ?? 0, total: s?.total ?? games, error: (error as Error).message }));
+    }
+  }
   useEffect(() => {
     if (prefsLoaded) savePgnPrefs(prefs);
   }, [prefsLoaded, prefs]);
@@ -139,6 +198,11 @@ export function PgnRenamer() {
   };
 
   const games = entries.length;
+  // Chapters exported from Lichess carry their chapter links, so they can be renamed there.
+  const fromLichess = useMemo(() => {
+    const refs = chapterRefs(splitGames(pgn).games);
+    return refs.length > 0 && refs.every(Boolean);
+  }, [pgn]);
   const renamed = result.names.filter(Boolean).length;
   const templateOk = prefs.template.includes('{opponent}') || prefs.template.includes('{score}');
 
@@ -161,7 +225,7 @@ export function PgnRenamer() {
     let text: string | null = null;
     let error: string | null = null;
     try {
-      const direct = await fetch(studyExportUrl(id), { headers: { Accept: 'application/x-chess-pgn' } });
+      const direct = await fetchStudy(id, lichess);
       if (direct.ok) text = await direct.text();
       else error = studyError(direct.status);
     } catch {
@@ -250,6 +314,9 @@ export function PgnRenamer() {
                   spellCheck={false}
                   placeholder="https://lichess.org/study/…"
                   value={studyLink}
+                  // Usable once the page is live: a link typed into the server-rendered
+                  // box before that would be wiped, or sent as a plain form post.
+                  disabled={!prefsLoaded}
                   onChange={(e) => setStudyLink(e.target.value)}
                 />
               </span>
@@ -627,6 +694,54 @@ export function PgnRenamer() {
                 Download .pgn
               </Button>
             </div>
+          </Panel>
+
+          <Panel code="06 / LICHESS" title="Rename the chapters on Lichess" serial="AIC-PN-LICH">
+            {!fromLichess ? (
+              <p className="ef-help">
+                Load the study by its link (above) to rename its chapters right on Lichess. A pasted PGN can only be
+                copied or downloaded.
+              </p>
+            ) : !lichess ? (
+              <>
+                <p className="ef-help">
+                  Sign in with Lichess and the chapters of your study get these names, in the same study: no
+                  re-import. Lichess asks you to allow reading and editing your studies; the sign-in stays on this
+                  device only.
+                </p>
+                <Button arrow onClick={signIn}>
+                  Sign in with Lichess
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="ef-help">
+                  Signed in as <strong>{lichess.username || 'you'}</strong>.{' '}
+                  <button
+                    type="button"
+                    className="ef-link"
+                    onClick={() => {
+                      signOut();
+                      setLichess(null);
+                    }}
+                  >
+                    Sign out
+                  </button>
+                </p>
+                <Button arrow disabled={renamed === 0 || (save != null && !save.error && !save.finished)} onClick={renameOnLichess}>
+                  {save && !save.error && !save.finished ? `Renaming ${save.done} / ${save.total}` : `Rename ${games} chapters`}
+                </Button>
+                {save?.error && <p className="ef-error">{save.error}</p>}
+                {save?.finished && (
+                  <p className="ef-help">
+                    Done.{' '}
+                    <a className="ef-link" href={save.finished} target="_blank" rel="noreferrer">
+                      Open the study ↗
+                    </a>
+                  </p>
+                )}
+              </>
+            )}
           </Panel>
         </>
       )}
